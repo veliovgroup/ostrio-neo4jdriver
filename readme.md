@@ -7,7 +7,7 @@ npm install neo4j
 
 ##### In your code:
 Create file in ```./server/lib/Neo4jDriver.js```
-```
+```javascript
 this.N4JDB = new Neo4j(); //From this point N4JDB variable available everywhere in your project
 ```
 
