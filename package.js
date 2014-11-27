@@ -1,17 +1,15 @@
 Package.describe({
   name: 'ostrio:neo4jdriver',
-  summary: ' /* Fill me in! */ ',
-  version: '1.0.0',
-  git: ' /* Fill me in! */ '
+  summary: 'Meteor.js Neo4j Driver (Connector)',
+  version: '0.1.0',
+  git: 'https://github.com/VeliovGroup/ostrio-neo4jdriver.git'
 });
 
 Package.onUse(function(api) {
   api.versionsFrom('1.0');
-  api.addFiles('ostrio:neo4jdriver.js');
+  api.addFiles('ostrio:neo4jdriver.js', 'server');
 });
 
-Package.onTest(function(api) {
-  api.use('tinytest');
-  api.use('ostrio:neo4jdriver');
-  api.addFiles('ostrio:neo4jdriver-tests.js');
+Npm.depends({
+  neo4j: '1.1.1'
 });
