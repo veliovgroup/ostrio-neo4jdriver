@@ -6,9 +6,15 @@ npm install neo4j
 ```
 
 ##### In your code:
+Create file in ```./server/lib/Neo4jDriver.js```
 ```
-N4JDB = new Neo4j();
+this.N4JDB = new Neo4j(); //From this point N4JDB variable available everywhere in your project
+```
 
+Next, just use it.
+
+##### Examples:
+```
 var node = N4JDB.createNode({hello: 'world'});     // instantaneous, but...
 node.save(function (err, node) {    // ...this is what actually persists.
     if (err) {
@@ -17,6 +23,37 @@ node.save(function (err, node) {    // ...this is what actually persists.
         console.log('Node saved to database with id:', node.id);
     }
 });
+```
+
+```
+/*
+ * Create user node with _id
+ */
+Accounts.onCreateUser(function(options, user) {
+
+    N4JDB.query('CREATE (:User {_id:"' + user._id + '"})', null, function(err, res){
+        if(error){
+            //handle error here
+        }
+    });
+});
+```
+
+```
+###
+This example in coffee
+Here we create some group and set our user as it's owner
+Next, we add relation :owns from owner to newly created group in one query
+###
+groupId = GroupsCollection.insert title: 'Some Group Title', (error) ->
+    error if error 
+        #handle error here
+
+N4JDB.query 'Match (o:User {_id:"' + Meteor.userId() + '"}) ' + 
+            'CREATE (g:Group {_id:"' + groupId + '", owner: "' + Meteor.userId() + '", active: true}) ' + 
+            'CREATE (o) -[:owns]-> (g)', null, (error, res) ->
+    error if error
+        #handle error here
 ```
 
 **For more info see: [node-neo4j](https://github.com/thingdom/node-neo4j)**
