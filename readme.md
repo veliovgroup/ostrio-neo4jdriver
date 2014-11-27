@@ -14,7 +14,7 @@ this.N4JDB = new Neo4j(); //From this point N4JDB variable available everywhere 
 Next, just use it.
 
 ##### Examples:
-```
+```javascript
 var node = N4JDB.createNode({hello: 'world'});     // instantaneous, but...
 node.save(function (err, node) {    // ...this is what actually persists.
     if (err) {
@@ -25,7 +25,7 @@ node.save(function (err, node) {    // ...this is what actually persists.
 });
 ```
 
-```
+```javascript
 /*
  * Create user node with _id
  */
@@ -39,7 +39,7 @@ Accounts.onCreateUser(function(options, user) {
 });
 ```
 
-```
+```coffeescript
 ###
 This example in coffee
 Here we create some group and set our user as it's owner
