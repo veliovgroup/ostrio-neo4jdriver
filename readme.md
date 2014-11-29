@@ -1,5 +1,12 @@
 Wrapper for [node-neo4j](https://github.com/thingdom/node-neo4j) by [The Thingdom](https://github.com/thingdom) to be used with Meteor apps
 
+On [atmospherejs.com](https://atmospherejs.com/ostrio/neo4jdriver)
+
+### Install to meteor
+```
+meteor add ostrio:neo4jdriver
+```
+
 ### Usage
 ```
 npm install neo4j
