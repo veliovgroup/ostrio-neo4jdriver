@@ -63,6 +63,19 @@ N4JDB.query 'Match (o:User {_id:"' + Meteor.userId() + '"}) ' +
         #handle error here
 ```
 
+```coffeescript
+###
+Register catch all callback
+Note - you may register as meny callbacks as you need
+@param query {string} - Cypher query
+@param opts {object} - A map of parameters for the Cypher query 
+###
+N4JDB = new Neo4j()
+N4JDB.listen (query, opts) ->
+    console.log query, opts
+
+```
+
 **For more info see: [node-neo4j](https://github.com/thingdom/node-neo4j)**
 Code licensed under Apache v. 2.0: [node-neo4j License](https://github.com/thingdom/node-neo4j/blob/master/LICENSE) 
 
