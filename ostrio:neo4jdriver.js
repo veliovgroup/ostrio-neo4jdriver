@@ -27,17 +27,15 @@ this.Neo4j = (function() {
      * @function
      * @namespace N4j.GraphDatabase
      * @name query
-     * @param query {String} - The Cypher query. NOTE: Can't be multi-line.
-     * @param opts {Object} - A map of parameters for the Cypher query.
+     * @param query {String}      - The Cypher query. NOTE: Can't be multi-line.
+     * @param opts {Object}       - A map of parameters for the Cypher query.
      * @param callback {function} - Callback function
      * @description Replace standard GraphDatabase.query method
      *              Add functionality of callbacks which runs on every query execution
      *
      */
     GraphDatabase.query = function(query, opts, callback){
-
       return new _n4j.GraphDatabase(this.url).query(query, opts, function(err, results){
-
         _.forEach(GraphDatabase.callbacks, function(cb){
           if(cb){
             cb(query, opts);
@@ -56,13 +54,12 @@ this.Neo4j = (function() {
      * @namespace N4j.GraphDatabase
      * @name listen
      * param callback {function} - Callback function with:
-     *                                  @param query {String} - The Cypher query. NOTE: Can't be multi-line.
-     *                                  @param opts {Object} - A map of parameters for the Cypher query.
+    *                                 @param query {String} - The Cypher query. NOTE: Can't be multi-line.
+    *                                 @param opts {Object}  - A map of parameters for the Cypher query.
      * @description Add callback function
      *
      */
     GraphDatabase.listen = function(callback){
-
       GraphDatabase.callbacks.push(callback);
     }
 
