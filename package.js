@@ -9,7 +9,6 @@ Package.onUse(function(api) {
   api.versionsFrom('1.0');
   api.addFiles('ostrio:neo4jdriver.js', 'server');
   api.use('underscore', 'server');
-  api.use('npm-container@1.0.0');
 });
 
 Npm.depends({
