@@ -1,7 +1,7 @@
 Package.describe({
   name: 'ostrio:neo4jdriver',
   summary: 'Meteor.js node-neo4j wrapper to be used with meteor applications (a.k.a. neo4j Connector)',
-  version: '0.2.4',
+  version: '0.2.5',
   git: 'https://github.com/VeliovGroup/ostrio-neo4jdriver.git'
 });
 
@@ -9,6 +9,7 @@ Package.onUse(function(api) {
   api.versionsFrom('1.0');
   api.addFiles('ostrio:neo4jdriver.js', 'server');
   api.use('underscore', 'server');
+  api.use('meteorhacks:npm@1.2.2');
 });
 
 Npm.depends({
