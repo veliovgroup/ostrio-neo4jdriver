@@ -1,3 +1,5 @@
 meteor@1.1.4
-ostrio:neo4jdriver@0.2.4
+meteorhacks:async@1.0.0
+meteorhacks:npm@1.2.2
+ostrio:neo4jdriver@0.2.5
 underscore@1.0.2
