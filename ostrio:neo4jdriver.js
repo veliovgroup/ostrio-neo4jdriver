@@ -1,3 +1,9 @@
+/*jshint strict:false */
+/*global Meteor:false */
+/*global process:false */
+/*global _n4j:false */
+/*global _:false */
+
 /*
  *
  * @function
@@ -15,12 +21,12 @@ this.Neo4j = (function() {
    *
    */
   function Neo4j(url) {
-    this.url = url != null ? url : process.env['NEO4J_URL'] || process.env['GRAPHENEDB_URL'] || 'http://localhost:7474';
+    this.url = (url != null) ? url : process.env['NEO4J_URL'] || process.env['GRAPHENEDB_URL'] || 'http://localhost:7474';
     this.N4j = Meteor.npmRequire('neo4j');
     _n4j = this.N4j;
 
     var GraphDatabase = new _n4j.GraphDatabase(this.url);
-    GraphDatabase.callbacks = []
+    GraphDatabase.callbacks = [];
 
     /*
      *
@@ -46,7 +52,7 @@ this.Neo4j = (function() {
           callback(err, results);
         }
       });
-    }
+    };
 
     /*
      *
@@ -61,7 +67,7 @@ this.Neo4j = (function() {
      */
     GraphDatabase.listen = function(callback){
       GraphDatabase.callbacks.push(callback);
-    }
+    };
 
     return GraphDatabase;
   }
