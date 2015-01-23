@@ -36,7 +36,7 @@ this.Neo4j = (function() {
      * If something is wrong - throw message 
      */
     try {
-      var httpRes = HTTP.call("GET", this.url);
+      var httpRes = HTTP.call('GET', this.url);
       if(httpRes.statusCode === 200){
         this.ready = true;
         console.log('Meteor is successfully connected to Neo4j on ' + this.url);
@@ -79,7 +79,7 @@ this.Neo4j = (function() {
           }
         });
       }else{
-        console.log("GraphDatabase.query", _this.warning);
+        console.log('GraphDatabase.query', _this.warning);
       }
     };
 
@@ -98,7 +98,7 @@ this.Neo4j = (function() {
       if(_this.ready){
         GraphDatabase.callbacks.push(callback);
       }else{
-        console.log("GraphDatabase.listen", _this.warning);
+        console.log('GraphDatabase.listen', _this.warning);
       }
     };
 
@@ -107,3 +107,5 @@ this.Neo4j = (function() {
 
   return Neo4j;
 })();
+
+Meteor.Neo4j = this.Neo4j;
