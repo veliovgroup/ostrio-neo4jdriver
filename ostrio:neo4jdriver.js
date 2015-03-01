@@ -47,7 +47,7 @@ this.Neo4j = (function() {
       console.log('No' + this.message, e.toString());
     }
 
-    this.N4j = Meteor.npmRequire('neo4j');
+    this.N4j = Npm.require('neo4j');
     _n4j = this.N4j;
 
     var GraphDatabase = new _n4j.GraphDatabase(this.url);
