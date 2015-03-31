@@ -7,6 +7,12 @@ On [atmospherejs.com](https://atmospherejs.com/ostrio/neo4jdriver)
 meteor add ostrio:neo4jdriver
 ```
 
+#### Known issues
+ - __Neo4j-2.2.*__: [Error: Neo4jCacheCollection.upsert](https://github.com/VeliovGroup/ostrio-Neo4jreactivity/issues/22) - You need to disable default authentication in Neo4j-2.2.*:
+    * Open file `/Your_Neo4j-2.2.0_install_path/conf/neo4j-server.properties`
+    * Change line: `dbms.security.auth_enabled=true` (to false)
+
+
 ### Usage
 ```
 npm install neo4j
