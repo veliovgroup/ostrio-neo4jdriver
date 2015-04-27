@@ -1,7 +1,7 @@
 /*jshint strict:false */
 /*global Meteor:false */
+/*global Npm:false */
 /*global process:false */
-/*global _n4j:false */
 /*global HTTP:false */
 /*global console:false */
 /*global _:false */
@@ -13,7 +13,7 @@
  * @description Get GraphDatabase from node-neo4j npm package
  *
  */
-this.Neo4j = (function() {
+Meteor.Neo4j = (function() {
   /*
    *
    * @function
@@ -29,26 +29,37 @@ this.Neo4j = (function() {
     this.message = ' connection to Neo4j DataBase, please check your settings and what Neo4j database is running. Note: URL to Neo4j database is better to set via environment variable NEO4J_URL or GRAPHENEDB_URL';
     this.warning = 'Neo4j DataBase is not ready, check your settings and DB availability';
     this.ready = false;
-    this.url = (url != null) ? url : process.env['NEO4J_URL'] || process.env['GRAPHENEDB_URL'] || 'http://localhost:7474';
+    this.url = (url) ? url : process.env.NEO4J_URL || process.env.GRAPHENEDB_URL || 'http://localhost:7474';
 
     /*
      * Check connection to Neo4j
      * If something is wrong - throw message 
      */
     try {
-      var httpRes = HTTP.call('GET', this.url);
+      var connectionSettings = {};
+      var _url = this.url;
+      if(_url && _url.indexOf('@') !== -1){
+        _url = _url.replace('http://', '');
+        var auth = _url.split('@')[0];
+        _url = 'http://' + _url.split('@')[1];
+        connectionSettings = {
+          auth: auth
+        };
+      }
+
+      var httpRes = HTTP.call('GET', _url, connectionSettings);
       if(httpRes.statusCode === 200){
         this.ready = true;
-        console.log('Meteor is successfully connected to Neo4j on ' + this.url);
+        console.info('Meteor is successfully connected to Neo4j on ' + this.url);
       }else{
-        console.log('Bad' + this.message, httpRes.toString());
+        console.warn('Bad' + this.message, httpRes.toString());
       }
     } catch (e) {
-      console.log('No' + this.message, e.toString());
+      console.warn('No' + this.message, e.toString());
     }
 
     this.N4j = Npm.require('neo4j');
-    _n4j = this.N4j;
+    var _n4j = this.N4j;
 
     var GraphDatabase = new _n4j.GraphDatabase(this.url);
     GraphDatabase.callbacks = [];
@@ -79,7 +90,7 @@ this.Neo4j = (function() {
           }
         });
       }else{
-        console.log('GraphDatabase.query', _this.warning);
+        console.warn('GraphDatabase.query', _this.warning);
       }
     };
 
@@ -107,5 +118,3 @@ this.Neo4j = (function() {
 
   return Neo4j;
 })();
-
-Meteor.Neo4j = this.Neo4j;

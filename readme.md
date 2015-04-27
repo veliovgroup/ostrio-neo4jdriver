@@ -1,17 +1,11 @@
 Wrapper for [node-neo4j](https://github.com/thingdom/node-neo4j) by [The Thingdom](https://github.com/thingdom) to be used with Meteor apps
 
-On [atmospherejs.com](https://atmospherejs.com/ostrio/neo4jdriver)
+See also [Isomorphic Reactive Driver](https://github.com/VeliovGroup/ostrio-Neo4jreactivity).
 
 ### Install to meteor
 ```
 meteor add ostrio:neo4jdriver
 ```
-
-#### Known issues:
- - __[Error: Neo4jCacheCollection.upsert in v2.2.*](https://github.com/VeliovGroup/ostrio-Neo4jreactivity/issues/22)__: - You need to disable default authentication in Neo4j-2.2.*:
-    * Open file `/Your_Neo4j-2.2.0_install_path/conf/neo4j-server.properties`
-    * Change line: `dbms.security.auth_enabled=true` (to false)
-
 
 ### Usage
 ```
@@ -21,7 +15,7 @@ npm install neo4j
 ##### In your code:
 Create file in ```./server/lib/Neo4jDriver.js```
 ```javascript
-this.N4JDB = new Meteor.Neo4j(); //From this point N4JDB variable available everywhere in your project
+this.N4JDB = new Meteor.Neo4j(/* http://username:password@domain.com */); //From this point N4JDB variable available everywhere in your project
 ```
 
 Next, just use it.
@@ -72,7 +66,7 @@ N4JDB.query 'Match (o:User {_id:"' + Meteor.userId() + '"}) ' +
 ```coffeescript
 ###
 Register catch all callback
-Note - you may register as meny callbacks as you need
+Note - you may register as many callbacks as you need
 @param query {string} - Cypher query
 @param opts {object} - A map of parameters for the Cypher query 
 ###
