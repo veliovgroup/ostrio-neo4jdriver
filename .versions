@@ -1,5 +1,5 @@
 http@1.1.0
-meteor@1.1.6-rc.0
-ostrio:neo4jdriver@0.2.11
+meteor@1.1.6
+ostrio:neo4jdriver@0.2.12
 underscore@1.0.3
 url@1.0.4
