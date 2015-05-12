@@ -47,7 +47,7 @@ Meteor.Neo4j = (function() {
         };
       }
 
-      var httpRes = HTTP.call('GET', _url, connectionSettings);
+      var httpRes = HTTP.call('GET', _url + '/db/manage/', connectionSettings);
       if(httpRes.statusCode === 200){
         this.ready = true;
         console.info('Meteor is successfully connected to Neo4j on ' + this.url);
@@ -55,11 +55,11 @@ Meteor.Neo4j = (function() {
         console.warn('Bad' + this.message, httpRes.toString());
       }
     } catch (e) {
-      console.warn('No' + this.message, e.toString());
+      console.warn('No' + this.message);
+      console.warn(e.toString());
     }
 
-    this.N4j = Npm.require('neo4j');
-    var _n4j = this.N4j;
+    var _n4j = Npm.require('neo4j');
 
     var GraphDatabase = new _n4j.GraphDatabase(this.url);
     GraphDatabase.callbacks = [];
@@ -100,8 +100,8 @@ Meteor.Neo4j = (function() {
      * @namespace N4j.GraphDatabase
      * @name listen
      * param callback {function} - Callback function with:
-    *                                 @param query {String} - The Cypher query. NOTE: Can't be multi-line.
-    *                                 @param opts {Object}  - A map of parameters for the Cypher query.
+     *                              - @param query {String} - The Cypher query. NOTE: Can't be multi-line.
+     *                              - @param opts  {Object} - A map of parameters for the Cypher query.
      * @description Add callback function
      *
      */
@@ -109,7 +109,7 @@ Meteor.Neo4j = (function() {
       if(_this.ready){
         GraphDatabase.callbacks.push(callback);
       }else{
-        console.log('GraphDatabase.listen', _this.warning);
+        console.warn('GraphDatabase.listen', _this.warning);
       }
     };
 
