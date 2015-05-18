@@ -1,5 +1,9 @@
+base64@1.0.3
+check@1.0.5
+ejson@1.0.6
 http@1.1.0
+json@1.0.3
 meteor@1.1.6
-ostrio:neo4jdriver@0.2.13
+ostrio:neo4jdriver@0.2.14
 underscore@1.0.3
 url@1.0.4
