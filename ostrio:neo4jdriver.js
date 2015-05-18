@@ -4,6 +4,8 @@
 /*global process:false */
 /*global HTTP:false */
 /*global console:false */
+/*global check:false */
+/*global Match:false */
 /*global _:false */
 
 /*
@@ -23,6 +25,7 @@ Meteor.Neo4j = (function() {
    *
    */
   function Neo4j(url) {
+    check(url, Match.Optional(Match.OneOf(String, null)));
 
     var _this = this;
 
@@ -71,12 +74,16 @@ Meteor.Neo4j = (function() {
      * @name query
      * @param query {String}      - The Cypher query. NOTE: Can't be multi-line.
      * @param opts {Object}       - A map of parameters for the Cypher query.
-     * @param callback {function} - Callback function
+     * @param callback {Function} - Callback function
      * @description Replace standard GraphDatabase.query method
      *              Add functionality of callbacks which runs on every query execution
      *
      */
     GraphDatabase.query = function(query, opts, callback){
+      check(query, String);
+      check(opts, Match.Optional(Match.OneOf(Object, null)));
+      check(callback, Match.Optional(Function));
+
       if(_this.ready){
         return new _n4j.GraphDatabase(_this.url).query(query, opts, function(err, results){
           _.forEach(GraphDatabase.callbacks, function(cb){
@@ -99,13 +106,15 @@ Meteor.Neo4j = (function() {
      * @function
      * @namespace N4j.GraphDatabase
      * @name listen
-     * param callback {function} - Callback function with:
+     * param callback {Function} - Callback function with:
      *                              - @param query {String} - The Cypher query. NOTE: Can't be multi-line.
      *                              - @param opts  {Object} - A map of parameters for the Cypher query.
      * @description Add callback function
      *
      */
     GraphDatabase.listen = function(callback){
+      check(callback, Match.Optional(Function));
+
       if(_this.ready){
         GraphDatabase.callbacks.push(callback);
       }else{
