@@ -82,7 +82,7 @@ Meteor.Neo4j = (function() {
     GraphDatabase.query = function(query, opts, callback){
       check(query, String);
       check(opts, Match.Optional(Match.OneOf(Object, null)));
-      check(callback, Match.Optional(Function));
+      check(callback, Match.Optional(Match.OneOf(Function, null)));
 
       if(_this.ready){
         return new _n4j.GraphDatabase(_this.url).query(query, opts, function(err, results){
@@ -113,7 +113,7 @@ Meteor.Neo4j = (function() {
      *
      */
     GraphDatabase.listen = function(callback){
-      check(callback, Match.Optional(Function));
+      check(callback, Match.Optional(Match.OneOf(Function, null)));
 
       if(_this.ready){
         GraphDatabase.callbacks.push(callback);
