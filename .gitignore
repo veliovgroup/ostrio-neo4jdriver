@@ -1,2 +1,4 @@
 .build*
 .npm
+
+demo/demo.js
