@@ -64,7 +64,10 @@ class Neo4jDB
                   if _.isEmpty result.body.errors
                     @batchResults[result.id] = result.body
                   else
-                    @batchResults[result.id] = result.body.errors
+                    for error in result.body.errors
+                      console.error error.message
+                      console.error {code: error.code}
+                    @batchResults[result.id] = []
 
                   clones[result.id] = undefined
                   delete clones[result.id]
