@@ -1,21 +1,22 @@
 console.success = (message) -> console.info '\x1b[1m', '\x1b[32m', message, '\x1b[0m'
+Function::define = (name, getSet) -> Object.defineProperty @prototype, name, getSet
 
 class Neo4jListener
-  constructor: (listener, @db) ->
+  constructor: (listener, @_db) ->
     check listener, Function
     @__id = Random.id()
-    @db.listeners[@__id] = listener
+    @_db.listeners[@__id] = listener
   unset: ->
-    @db.listeners[@__id] = undefined
-    delete @db.listeners[@__id]
+    @_db.listeners[@__id] = undefined
+    delete @_db.listeners[@__id]
 
 
 class Neo4jEndpoint
-  constructor: (@key, @endpoint, @db) ->
+  constructor: (@key, @endpoint, @_db) ->
     check @key, String
     check @endpoint, String
   get: (method = 'GET', body = {}, callback) -> 
-    @db.__batch
+    @_db.__batch
       method: method
       to: @endpoint
       body: body
@@ -57,15 +58,13 @@ class Neo4jDB
         tasks = []
         clones = {}
         for taskId, task of @batchQueue
-          JSONableTask = _.clone task
-          delete JSONableTask.fut
-          tasks.push JSONableTask
+          tasks.push _.clone task
           clones[taskId] = _.clone @batchQueue[taskId]
 
           @batchQueue[taskId] = undefined
           delete @batchQueue[taskId]
         
-        results = @__call @__service.batch.endpoint
+        @__call @__service.batch.endpoint
         , 
           data: tasks
           headers:
@@ -82,23 +81,38 @@ class Neo4jDB
 
                   clones[result.id] = undefined
                   delete clones[result.id]
-    , 10
+    , 100
 
   __getBatchResult: (id, cb) ->
-    timer = Meteor.setInterval () =>
+    i = 0
+    timerId = Meteor.setInterval () =>
       if @batchResults?[id]
-        result = _.clone @batchResults[id]
-        for id, listener of @listeners
-          listener.call null, null, _.clone result
+        if 1 <= id <= 999999
+          reactive = true
+        else
+          reactive = false
+
+        result = @__transformData _.clone(@batchResults[id]), reactive
+        
+        listener.call null, null, _.clone result for id, listener of @listeners
+
         @batchResults[id] = undefined
         delete @batchResults[id]
-        Meteor.clearInterval timer
-        cb null, @__transformData result
-    , 10
+        Meteor.clearInterval timerId
+        cb and cb null, result
+      else if i > 300
+        Meteor.clearInterval timerId
+        cb and cb new Error "Batch request timeout"
+      i++
+    , 100
     return
 
-  __batch: (task, callback) ->
-    task.id = Math.floor((Math.random() * 99999 * 17) + 1)
+  __batch: (task, callback, reactive) ->
+    if reactive
+      task.id = Math.floor(Math.random()*(999999-1+1)+1)
+    else
+      task.id = Math.floor(Math.random()*(999999999-1000000+1)+1000000)
+
     task.to = task.to.replace @root, ''
     @batchQueue[task.id] = task
     unless callback
@@ -121,6 +135,7 @@ class Neo4jDB
                 @__service[key] = get: -> endpoint
               console.success "v#{endpoint}" if key is "neo4j_version"
           @ready = true
+          console.success "Meteor is successfully connected to Neo4j on #{@url}"
       when 401
         throw new Error JSON.stringify response
       when 403
@@ -149,64 +164,62 @@ class Neo4jDB
     catch error
       console.error error
 
-  __transformData: (response) ->
-    console.log "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
-    console.log "||||||||||||||||||||||||||||||[__transformData]|||||||||||||||||||||||||||||||"
-    console.log "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+  __parseNode: (currentNode) ->
+    node = meta: {}
+    for key, endpoint of currentNode
+      if _.isString(endpoint) and !!~endpoint.indexOf '://'
+        node.meta[key] = new Neo4jEndpoint key, endpoint, @
 
-    parseRow = (result, columns) ->
-      node = {}
-      for column, index in columns
-        if result?.row
-          row = 
-            node: result.row
-            isRest: false
+    nodeData = _.extend currentNode.data, currentNode.metadata
+    nodeData.metadata = currentNode.metadata
 
-        if result?.rest
-          row = 
-            node: result.rest
-            isRest: true
+    if currentNode?['start']
+      paths = currentNode.start.split '/'
+      nodeData.start = paths[paths.length - 1]
+    if currentNode?['end']
+      paths = currentNode.end.split '/'
+      nodeData.end = paths[paths.length - 1]
 
-        unless row
-          row = 
-            node: result
-            isRest: true
+    return _.extend node, nodeData
 
-        if _.isObject row.node[index]
-          currentNode = row.node[index]
-          if row.isRest
-            node[column] = meta: {}
-            for key, endpoint of currentNode
-              if _.isString(endpoint) and !!~endpoint.indexOf '://'
-                node[column].meta[key] = new Neo4jEndpoint key, endpoint, @
+  __parseRow: (result, columns, reactive) ->
+    node = {}
+    for column, index in columns
+      if result?.row
+        row = 
+          node: result.row
+          isRest: false
 
-            nodeData = _.extend currentNode.data, currentNode.metadata
-            nodeData.metadata = currentNode.metadata
+      if result?.rest
+        row = 
+          node: result.rest
+          isRest: true
 
-            if currentNode?['start']
-              paths = currentNode.start.split '/'
-              nodeData.start = paths[paths.length - 1]
-            if currentNode?['end']
-              paths = currentNode.end.split '/'
-              nodeData.end = paths[paths.length - 1]
+      unless row
+        row = 
+          node: result
+          isRest: true
 
-            node[column] = _.extend node[column], nodeData
-          else
-            node[column] = currentNode
+      if _.isObject row.node[index]
+        if row.isRest
+          node[column] = new Neo4jNode @__parseNode(row.node[index]), reactive
         else
-          node[column] = row.node[index]
-      return node
+          node[column] = new Neo4jNode row.node[index]
+      else
+        node[column] = row.node[index]
+    return node
 
-    parseData = (data, columns) ->
-      res = []
-      for key, result of data
-        res.push parseRow result, columns
-      return res
+  __parseResponse: (data, columns, reactive) ->
+    res = []
+    for key, result of data
+      res.push @__parseRow result, columns, reactive
+    return res
 
+  __transformData: (response, reactive) ->
     if response?.results or response?.errors
       unless response.exception
         unless _.isEmpty response.results?[0]?.data
-          return parseData response.results[0].data, response.results[0].columns
+          return @__parseResponse response.results[0].data, response.results[0].columns, reactive
         else
           return []
       else
@@ -214,17 +227,27 @@ class Neo4jDB
 
     if response?.columns and response?.data
       unless _.isEmpty response.data
-        return parseData response.data, response.columns
+        return @__parseResponse response.data, response.columns, reactive
       else
         return []
+
+    if response?.data and response?.metadata
+      return @__parseNode response, reactive
     
     return response
 
-  listen: (listener) -> new Neo4jListener listener
+  listen: (listener) -> new Neo4jListener listener, @
+
+  queryOne: (cypher, opts) ->
+    check cypher, String
+    check opts, Object
+    return @query(cypher, opts).fetch()[0]
+
+  queryAsync: (cypher, opts) -> @query cypher, opts, () -> return undefined
 
   query: (settings, opts, callback) ->
     if _.isObject settings
-      {cypher, query, opts, parameters, params, callback, cb, type, resultDataContents} = settings
+      {cypher, query, opts, parameters, params, callback, cb, type, resultDataContents, reactive, reactiveNodes} = settings
     else
       if _.isFunction opts
         callback = _.clone opts
@@ -234,12 +257,16 @@ class Neo4jDB
       cypher = settings
       settings = {}
 
+
     opts     ?= {}
     type     ?= 'transaction'
     cypher   ?= query
     opts     ?= parameters or params
     callback ?= cb
-    resultDataContents ?= 'REST'
+    reactive ?= reactive or reactiveNodes
+    reactive ?= true
+    resultDataContents ?= ['REST']
+    # resultDataContents ?= ["row", "graph"]
 
     check cypher, String
     check opts, Object
@@ -248,7 +275,7 @@ class Neo4jDB
     check callback, Match.Optional Function
 
     if type is 'cypher'
-      req = 
+      request = 
         method: 'POST'
         to: @__service.cypher.endpoint
         body:
@@ -256,14 +283,87 @@ class Neo4jDB
           params: opts
 
     if type is 'transaction'
-      req = 
+      request = 
         method: 'POST'
         to: @__service.transaction.endpoint + '/commit'
         body:
           statements: [
             statement: cypher
             parameters: opts
-            resultDataContents: [ resultDataContents ]
+            resultDataContents: resultDataContents
           ]
 
-    return @__batch req, callback if req
+    return new Neo4jCursor(@__batch(request, callback, reactive)) if request
+
+getIds = (data, ids = []) ->
+  _get = (row) ->
+    if _.isObject row
+      if row?.metadata
+        ids.push row.metadata.id
+      else
+        getIds row, ids
+  if _.isArray data
+    _get row for row in data
+  else if _.isObject data
+    _get row for key, row of data
+  return ids
+
+class Neo4jCursor
+  _cursor = {}
+  constructor: (cursor) ->
+    _cursor = cursor
+
+  fetch: -> 
+    data = []
+    @forEach (row) -> data.push row
+    data
+
+  # toMongo: (MongoCollection) ->
+  #   MongoCollection._ensureIndex
+  #     id: 1
+  #   ,
+  #     background: true
+  #     sparse: true
+  #     unique: true
+
+  #   nodes = {}
+  #   @forEach (row) ->
+
+  #     for nodeAlias, node of row
+  #       nodes[node.id]
+  #       data[nodeAlias] = node?.get()
+      # MongoCollection.upsert
+
+  each: (callback) -> @forEach callback
+
+  forEach: (callback) ->
+    check callback, Function
+    for row, rowId in @cursor
+      data = {}
+      if _.isObject row
+        for nodeAlias, node of row
+          data[nodeAlias] = node?.get()
+      callback data, rowId
+    return undefined
+
+  @define 'cursor',
+    get: -> _cursor
+    set: -> console.warn "This is not going to work, you trying to reset cursor, make new Cypher query instead"
+
+class Neo4jNode
+  constructor: (@_node, @isReactive) -> @newExpire()
+  newExpire: -> @expire = (+new Date) + 2000
+  get: -> @node
+  update: ->
+    if @_node?.meta
+      @node = @_node.meta.self.get()
+    return @
+  @define 'node',
+    get: -> 
+      if @isReactive and @expire < +new Date
+        @newExpire()
+        @update()._node
+      else
+        @_node
+    set: (newVal) -> 
+      @_node = newVal unless EJSON.equals @_node, newVal
