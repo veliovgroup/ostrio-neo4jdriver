@@ -3,8 +3,8 @@ class Neo4jNode
   newExpire: -> @expire = (+new Date) + 2000
   get: -> @node
   update: ->
-    if @_node?.meta
-      @node = @_node.meta.self.get()
+    if @_node?._service
+      @node = @_node._service.self.get()
     return @
   @define 'node',
     get: -> 

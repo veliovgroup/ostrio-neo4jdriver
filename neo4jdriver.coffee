@@ -149,10 +149,10 @@ class Neo4jDB
       console.error error
 
   __parseNode: (currentNode) ->
-    node = meta: {}
+    node = _service: {}
     for key, endpoint of currentNode
       if _.isString(endpoint) and !!~endpoint.indexOf '://'
-        node.meta[key] = new Neo4jEndpoint key, endpoint, @
+        node._service[key] = new Neo4jEndpoint key, endpoint, @
 
     nodeData = _.extend currentNode.data, currentNode.metadata
     nodeData.metadata = currentNode.metadata
@@ -249,7 +249,6 @@ class Neo4jDB
     reactive ?= reactive or reactiveNodes
     reactive ?= false
     resultDataContents ?= ['REST']
-    # resultDataContents ?= ["row", "graph"]
 
     check cypher, String
     check opts, Object
