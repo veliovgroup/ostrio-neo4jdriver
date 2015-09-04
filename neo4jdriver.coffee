@@ -61,7 +61,10 @@ class Neo4jDB
             if results?.data
               for result in results.data
                 if clones?[result.id]
-                  @batchResults[result.id] = result.body
+                  if _.isEmpty result.body.errors
+                    @batchResults[result.id] = result.body
+                  else
+                    @batchResults[result.id] = result.body.errors
 
                   clones[result.id] = undefined
                   delete clones[result.id]
