@@ -1,6 +1,3 @@
-console.success = (message) -> console.info '\x1b[1m', '\x1b[32m', message, '\x1b[0m'
-Function::define = (name, getSet) -> Object.defineProperty @prototype, name, getSet
-
 class Neo4jListener
   constructor: (listener, @_db) ->
     check listener, Function
@@ -9,19 +6,6 @@ class Neo4jListener
   unset: ->
     @_db.listeners[@__id] = undefined
     delete @_db.listeners[@__id]
-
-
-class Neo4jEndpoint
-  constructor: (@key, @endpoint, @_db) ->
-    check @key, String
-    check @endpoint, String
-  get: (method = 'GET', body = {}, callback) -> 
-    @_db.__batch
-      method: method
-      to: @endpoint
-      body: body
-    ,
-      callback
 
 class Neo4jDB
   constructor: (@url, opts = {}) ->
@@ -257,14 +241,13 @@ class Neo4jDB
       cypher = settings
       settings = {}
 
-
     opts     ?= {}
     type     ?= 'transaction'
     cypher   ?= query
     opts     ?= parameters or params
     callback ?= cb
     reactive ?= reactive or reactiveNodes
-    reactive ?= true
+    reactive ?= false
     resultDataContents ?= ['REST']
     # resultDataContents ?= ["row", "graph"]
 
@@ -294,76 +277,3 @@ class Neo4jDB
           ]
 
     return new Neo4jCursor(@__batch(request, callback, reactive)) if request
-
-getIds = (data, ids = []) ->
-  _get = (row) ->
-    if _.isObject row
-      if row?.metadata
-        ids.push row.metadata.id
-      else
-        getIds row, ids
-  if _.isArray data
-    _get row for row in data
-  else if _.isObject data
-    _get row for key, row of data
-  return ids
-
-class Neo4jCursor
-  _cursor = {}
-  constructor: (cursor) ->
-    _cursor = cursor
-
-  fetch: -> 
-    data = []
-    @forEach (row) -> data.push row
-    data
-
-  # toMongo: (MongoCollection) ->
-  #   MongoCollection._ensureIndex
-  #     id: 1
-  #   ,
-  #     background: true
-  #     sparse: true
-  #     unique: true
-
-  #   nodes = {}
-  #   @forEach (row) ->
-
-  #     for nodeAlias, node of row
-  #       nodes[node.id]
-  #       data[nodeAlias] = node?.get()
-      # MongoCollection.upsert
-
-  each: (callback) -> @forEach callback
-
-  forEach: (callback) ->
-    check callback, Function
-    for row, rowId in @cursor
-      data = {}
-      if _.isObject row
-        for nodeAlias, node of row
-          data[nodeAlias] = node?.get()
-      callback data, rowId
-    return undefined
-
-  @define 'cursor',
-    get: -> _cursor
-    set: -> console.warn "This is not going to work, you trying to reset cursor, make new Cypher query instead"
-
-class Neo4jNode
-  constructor: (@_node, @isReactive) -> @newExpire()
-  newExpire: -> @expire = (+new Date) + 2000
-  get: -> @node
-  update: ->
-    if @_node?.meta
-      @node = @_node.meta.self.get()
-    return @
-  @define 'node',
-    get: -> 
-      if @isReactive and @expire < +new Date
-        @newExpire()
-        @update()._node
-      else
-        @_node
-    set: (newVal) -> 
-      @_node = newVal unless EJSON.equals @_node, newVal
