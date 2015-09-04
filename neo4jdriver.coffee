@@ -169,6 +169,11 @@ class Neo4jDB
   __parseRow: (result, columns, reactive) ->
     node = {}
     for column, index in columns
+
+      if result?.graph
+        for key, value of result.graph
+          node[key] = value
+
       if result?.row
         row = 
           node: result.row

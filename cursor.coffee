@@ -45,7 +45,10 @@ class Neo4jCursor
       data = {}
       if _.isObject row
         for nodeAlias, node of row
-          data[nodeAlias] = node?.get()
+          if node?.get?()
+            data[nodeAlias] = node.get()
+          else
+            data[nodeAlias] = node
       callback data, rowId
     return undefined
 
