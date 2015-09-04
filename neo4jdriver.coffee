@@ -1,3 +1,5 @@
+NTRU_def = process.env.NODE_TLS_REJECT_UNAUTHORIZED
+
 class Neo4jListener
   constructor: (listener, @_db) ->
     check listener, Function
@@ -21,6 +23,7 @@ class Neo4jDB
     @base = opts.base or opts.root or opts.path or 'db/data'
     @base = @base.replace(/^\/|\/$/g, '')
     @root = "#{@url}/#{@base}"
+    @https = !!~@url.indexOf 'https://'
     check @base, String
 
     @__service = {}
@@ -61,16 +64,20 @@ class Neo4jDB
             if results?.data
               for result in results.data
                 if clones?[result.id]
-                  if _.isEmpty result.body.errors
-                    @batchResults[result.id] = result.body
+                  if result?.body
+                    if _.isEmpty result.body?.errors
+                      @batchResults[result.id] = result.body
+                    else
+                      for error in result.body.errors
+                        console.error error.message
+                        console.error {code: error.code}
+                      @batchResults[result.id] = []
                   else
-                    for error in result.body.errors
-                      console.error error.message
-                      console.error {code: error.code}
                     @batchResults[result.id] = []
 
                   clones[result.id] = undefined
                   delete clones[result.id]
+
     , 100
 
   __getBatchResult: (id, cb) ->
@@ -112,26 +119,29 @@ class Neo4jDB
 
   __connect: -> 
     response = @__call @root
-    switch response.statusCode
-      when 200
-        if response.data.password_change_required
-          throw new Error "To connect to Neo4j - password change is required, please proceed to #{response.data.password_change}"
+    if response?.statusCode
+      switch response.statusCode
+        when 200
+          if response.data.password_change_required
+            throw new Error "To connect to Neo4j - password change is required, please proceed to #{response.data.password_change}"
+          else
+            for key, endpoint of response.data
+              if _.isString endpoint
+                if !!~endpoint.indexOf '://'
+                  @__service[key] = new Neo4jEndpoint key, endpoint, @
+                else
+                  @__service[key] = get: -> endpoint
+                console.success "v#{endpoint}" if key is "neo4j_version"
+            @ready = true
+            console.success "Meteor is successfully connected to Neo4j on #{@url}"
+        when 401
+          throw new Error JSON.stringify response
+        when 403
+          throw new Error JSON.stringify response
         else
-          for key, endpoint of response.data
-            if _.isString endpoint
-              if !!~endpoint.indexOf '://'
-                @__service[key] = new Neo4jEndpoint key, endpoint, @
-              else
-                @__service[key] = get: -> endpoint
-              console.success "v#{endpoint}" if key is "neo4j_version"
-          @ready = true
-          console.success "Meteor is successfully connected to Neo4j on #{@url}"
-      when 401
-        throw new Error JSON.stringify response
-      when 403
-        throw new Error JSON.stringify response
-      else
-        throw new Error JSON.stringify response
+          throw new Error JSON.stringify response
+    else
+      throw new Error "Error with connection to Neo4j"
 
   __httpCallSync: Meteor.wrapAsync HTTP.call
 
@@ -141,16 +151,24 @@ class Neo4jDB
     check method, String
     check callback, Match.Optional Function
 
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0
+
     if options?.headers
       options.headers = _.extend @defaultHeaders, options.headers 
     else
       options.headers = @defaultHeaders
 
+    options = _.extend options, timeout: 10000
+
     try
       unless callback
-        return @__httpCallSync method, url, options
+        res = @__httpCallSync method, url, options
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = NTRU_def
+        return res
       else
-        HTTP.call method, url, options, callback
+        HTTP.call method, url, options, ->
+          process.env.NODE_TLS_REJECT_UNAUTHORIZED = NTRU_def
+          callback.apply @, arguments
     catch error
       console.error error
 
