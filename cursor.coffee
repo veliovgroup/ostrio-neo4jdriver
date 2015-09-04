@@ -22,17 +22,18 @@ class Neo4jCursor
     @forEach (row) ->
 
       for nodeAlias, node of row
-        nodes[node.id] ?= columns: [nodeAlias]
-        nodes[node.id].columns = _.union nodes[node.id].columns, [nodeAlias]
-        nodes[node.id] = _.extend nodes[node.id], node
-        if nodes[node.id]?.meta
-          nodes[node.id].meta = undefined
-          delete nodes[node.id].meta 
+        if node?id
+          nodes[node.id] ?= columns: [nodeAlias]
+          nodes[node.id].columns = _.union nodes[node.id].columns, [nodeAlias]
+          nodes[node.id] = _.extend nodes[node.id], node
+          if nodes[node.id]?._service
+            nodes[node.id]._service = undefined
+            delete nodes[node.id]._service 
 
-        MongoCollection.upsert 
-          id: node.id
-        , 
-          $set: nodes[node.id]
+          MongoCollection.upsert 
+            id: node.id
+          , 
+            $set: nodes[node.id]
 
     return MongoCollection
 
