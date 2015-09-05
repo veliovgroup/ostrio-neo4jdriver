@@ -1,8 +1,5 @@
 class Neo4jCursor
-  _cursor = {}
-  constructor: (cursor) ->
-    _cursor = cursor
-
+  constructor: (@_cursor) ->
   fetch: -> 
     data = []
     @forEach (row) -> data.push row
@@ -53,5 +50,5 @@ class Neo4jCursor
     return undefined
 
   @define 'cursor',
-    get: -> _cursor
+    get: -> @_cursor
     set: -> console.warn "This is not going to work, you trying to reset cursor, make new Cypher query instead"
