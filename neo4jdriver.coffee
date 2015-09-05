@@ -1,4 +1,7 @@
 NTRU_def = process.env.NODE_TLS_REJECT_UNAUTHORIZED
+bound = Meteor.bindEnvironment (callback) -> return callback()
+
+events = Npm.require 'events'
 
 class Neo4jListener
   constructor: (listener, @_db) ->
@@ -10,7 +13,9 @@ class Neo4jListener
     delete @_db.listeners[@__id]
 
 class Neo4jDB
+  __proto__: events.EventEmitter.prototype;
   constructor: (@url, opts = {}) ->
+    events.EventEmitter.call @
     @url = @url or process.env.NEO4J_URL or process.env.GRAPHENEDB_URL or 'http://localhost:7474'
     check @url, String
     check opts, Object
@@ -28,7 +33,6 @@ class Neo4jDB
 
     @__service = {}
     @listeners = {}
-    @batchQueue = {}
     @batchResults = {}
     @ready = false
 
@@ -36,86 +40,64 @@ class Neo4jDB
     @defaultHeaders = _.extend @defaultHeaders, opts.headers if opts?.headers
     @defaultHeaders.Authorization = "Basic " + (new Buffer("#{opts.username}:#{opts.password}").toString('base64')) if opts.password and opts.username
 
+    @on 'batch', @__request
+    tasks = []
+    @on 'query', (id, task) => 
+      tasks.push task
+      if @ready
+        @emit 'batch', tasks, -> tasks = [] 
+    
     @__connect()
-    @__start()
 
-  __start: ->
-    Meteor.setInterval =>
-      if @ready and Object.keys(@batchQueue).length > 0
-        tasks = []
-        clones = {}
-        for taskId, task of @batchQueue
-          tasks.push _.clone task
-          clones[taskId] = _.clone @batchQueue[taskId]
+  __request: _.throttle (tasks, cb) ->
+    bound =>
+      @__call @__service.batch.endpoint
+      , 
+        data: tasks
+        headers:
+          Accept: 'application/json; charset=UTF-8'
+          'Content-Type': 'application/json'
+      ,
+        'POST'
+      ,
+        (error, results) =>
+          # console.log results
 
-          @batchQueue[taskId] = undefined
-          delete @batchQueue[taskId]
-        
-        @__call @__service.batch.endpoint
-        , 
-          data: tasks
-          headers:
-            Accept: 'application/json; charset=UTF-8'
-            'Content-Type': 'application/json'
-        ,
-          'POST'
-        ,
-          (error, results) =>
-            if results?.data
-              for result in results.data
-                if clones?[result.id]
-                  if result?.body
-                    if _.isEmpty result.body?.errors
-                      @batchResults[result.id] = result.body
-                    else
-                      for error in result.body.errors
-                        console.error error.message
-                        console.error {code: error.code}
-                      @batchResults[result.id] = []
-                  else
-                    @batchResults[result.id] = []
+          if results?.data
+            @__proceedResult result for result in results.data
 
-                  clones[result.id] = undefined
-                  delete clones[result.id]
+          else if results?.content
+            content = JSON.parse results.content
+            @__proceedResult result for result in content
+      cb and cb()
 
-    , 100
+  , 100
 
-  __getBatchResult: (id, cb) ->
-    i = 0
-    timerId = Meteor.setInterval () =>
-      if @batchResults?[id]
-        if 1 <= id <= 999999
-          reactive = true
-        else
-          reactive = false
-
-        result = @__transformData _.clone(@batchResults[id]), reactive
-        
-        listener.call null, null, _.clone result for id, listener of @listeners
-
-        @batchResults[id] = undefined
-        delete @batchResults[id]
-        Meteor.clearInterval timerId
-        cb and cb null, result
-      else if i > 300
-        Meteor.clearInterval timerId
-        cb and cb new Error "Batch request timeout"
-      i++
-    , 100
-    return
+  __proceedResult: (result) ->
+    if result?.body
+      if _.isEmpty result.body?.errors
+        @emit result.id, null, result.body
+      else
+        for error in result.body.errors
+          console.error error.message
+          console.error {code: error.code}
+        @emit result.id, null, []
+    else
+      @emit result.id, null, []
 
   __batch: (task, callback, reactive) ->
-    if reactive
-      task.id = Math.floor(Math.random()*(999999-1+1)+1)
-    else
-      task.id = Math.floor(Math.random()*(999999999-1000000+1)+1000000)
-
     task.to = task.to.replace @root, ''
-    @batchQueue[task.id] = task
+    @emit 'query', task.id, task
     unless callback
-      return Meteor.wrapAsync((cb) => @__getBatchResult task.id, cb)()
+      res =  Meteor.wrapAsync((cb) =>
+        @once task.id, (error, response) =>
+          bound => cb error, @__transformData _.clone(response), reactive
+      )()
+      return res
     else
-      @__getBatchResult task.id, callback
+      @once task.id, (error, response) =>
+        bound =>
+          callback error, @__transformData _.clone(response), reactive
 
   __connect: -> 
     response = @__call @root
@@ -251,7 +233,7 @@ class Neo4jDB
 
   listen: (listener) -> new Neo4jListener listener, @
 
-  queryOne: (cypher, opts) ->
+  queryOne: (cypher, opts = {}) ->
     check cypher, String
     check opts, Object
     return @query(cypher, opts).fetch()[0]
@@ -260,7 +242,7 @@ class Neo4jDB
 
   query: (settings, opts, callback) ->
     if _.isObject settings
-      {cypher, query, opts, parameters, params, callback, cb, type, resultDataContents, reactive, reactiveNodes} = settings
+      {cypher, query, opts, parameters, params, callback, cb, resultDataContents, reactive, reactiveNodes} = settings
     else
       if _.isFunction opts
         callback = _.clone opts
@@ -271,7 +253,6 @@ class Neo4jDB
       settings = {}
 
     opts     ?= {}
-    type     ?= 'transaction'
     cypher   ?= query
     opts     ?= parameters or params
     callback ?= cb
@@ -282,26 +263,43 @@ class Neo4jDB
     check cypher, String
     check opts, Object
     check settings, Object
-    check type, String
     check callback, Match.Optional Function
 
-    if type is 'cypher'
-      request = 
-        method: 'POST'
-        to: @__service.cypher.endpoint
-        body:
-          query: cypher
-          params: opts
+    # if type is 'cypher'
+    #   request = 
+    #     method: 'POST'
+    #     to: @__service.cypher.endpoint
+    #     body:
+    #       query: cypher
+    #       params: opts
 
-    if type is 'transaction'
-      request = 
-        method: 'POST'
-        to: @__service.transaction.endpoint + '/commit'
-        body:
-          statements: [
-            statement: cypher
-            parameters: opts
-            resultDataContents: resultDataContents
-          ]
+    request = 
+      method: 'POST'
+      to: @__service.transaction.endpoint + '/commit'
+      body:
+        statements: [
+          statement: cypher
+          parameters: opts
+          resultDataContents: resultDataContents
+        ]
 
-    return new Neo4jCursor(@__batch(request, callback, reactive)) if request
+    unless callback
+      return Meteor.wrapAsync((cb)=>
+        cb null, new Neo4jCursor @__batch request, null, reactive
+      )()
+    else
+      @__batch request, (error, data) ->
+        callback null, new Neo4jCursor data
+      , reactive
+      return @
+
+#   transaction: -> new Neo4jTransaction @
+
+# class Neo4jTransaction
+#   constructor: (_db) ->
+#     request = 
+#       method: 'POST'
+#       to: _db.__service.transaction.endpoint
+#       body:
+#         statements: []
+#     console.log _db.__batch request
