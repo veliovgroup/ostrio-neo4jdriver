@@ -2,6 +2,8 @@ NTRU_def = process.env.NODE_TLS_REJECT_UNAUTHORIZED
 bound = Meteor.bindEnvironment (callback) -> return callback()
 
 events = Npm.require 'events'
+Stream = Npm.require 'stream'
+
 
 class Neo4jListener
   constructor: (listener, @_db) ->
@@ -61,11 +63,8 @@ class Neo4jDB
         'POST'
       ,
         (error, results) =>
-          # console.log results
-
           if results?.data
             @__proceedResult result for result in results.data
-
           else if results?.content
             content = JSON.parse results.content
             @__proceedResult result for result in content
@@ -87,16 +86,19 @@ class Neo4jDB
 
   __batch: (task, callback, reactive) ->
     task.to = task.to.replace @root, ''
+    task.id = Math.floor(Math.random()*(999999999-1+1)+1)
     @emit 'query', task.id, task
     unless callback
-      res =  Meteor.wrapAsync((cb) =>
+      return Meteor.wrapAsync((cb) =>
         @once task.id, (error, response) =>
-          bound => cb error, @__transformData _.clone(response), reactive
+          bound => 
+            console.warn "EMITTED from __proceedResult", response.results or response
+            cb error, @__transformData _.clone(response), reactive
       )()
-      return res
     else
       @once task.id, (error, response) =>
         bound =>
+          console.warn "EMITTED from __proceedResult", response.results or response
           callback error, @__transformData _.clone(response), reactive
 
   __connect: -> 
@@ -213,10 +215,11 @@ class Neo4jDB
   __transformData: (response, reactive) ->
     if response?.results or response?.errors
       unless response.exception
-        unless _.isEmpty response.results?[0]?.data
-          return @__parseResponse response.results[0].data, response.results[0].columns, reactive
-        else
-          return []
+        parsed = []
+        for result in response.results
+          if result?.data
+            parsed = parsed.concat @__parseResponse result.data, result.columns, reactive
+        return parsed
       else
         return response.exception
 
