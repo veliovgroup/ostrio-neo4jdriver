@@ -2,8 +2,6 @@ NTRU_def = process.env.NODE_TLS_REJECT_UNAUTHORIZED
 bound = Meteor.bindEnvironment (callback) -> return callback()
 
 events = Npm.require 'events'
-Stream = Npm.require 'stream'
-
 
 class Neo4jListener
   constructor: (listener, @_db) ->
@@ -70,7 +68,7 @@ class Neo4jDB
             @__proceedResult result for result in content
       cb and cb()
 
-  , 100
+  , 50
 
   __proceedResult: (result) ->
     if result?.body
@@ -91,15 +89,11 @@ class Neo4jDB
     unless callback
       return Meteor.wrapAsync((cb) =>
         @once task.id, (error, response) =>
-          bound => 
-            console.warn "EMITTED from __proceedResult", response.results or response
-            cb error, @__transformData _.clone(response), reactive
+          bound => cb error, @__transformData _.clone(response), reactive
       )()
     else
       @once task.id, (error, response) =>
-        bound =>
-          console.warn "EMITTED from __proceedResult", response.results or response
-          callback error, @__transformData _.clone(response), reactive
+        bound => callback error, @__transformData _.clone(response), reactive
 
   __connect: -> 
     response = @__call @root
@@ -268,14 +262,6 @@ class Neo4jDB
     check settings, Object
     check callback, Match.Optional Function
 
-    # if type is 'cypher'
-    #   request = 
-    #     method: 'POST'
-    #     to: @__service.cypher.endpoint
-    #     body:
-    #       query: cypher
-    #       params: opts
-
     request = 
       method: 'POST'
       to: @__service.transaction.endpoint + '/commit'
@@ -295,6 +281,29 @@ class Neo4jDB
         callback null, new Neo4jCursor data
       , reactive
       return @
+
+  # cypher: (cypher, opts = {}, callback) ->
+  #   check cypher, String
+  #   check opts, Object
+  #   check callback, Match.Optional Function
+
+  #   if type is 'cypher'
+  #     request = 
+  #       method: 'POST'
+  #       to: @__service.cypher.endpoint
+  #       body:
+  #         query: cypher
+  #         params: opts
+
+  #   unless callback
+  #     return Meteor.wrapAsync((cb)=>
+  #       cb null, new Neo4jCursor @__batch request, null, reactive
+  #     )()
+  #   else
+  #     @__batch request, (error, data) ->
+  #       callback null, new Neo4jCursor data
+  #     , reactive
+  #     return @
 
 #   transaction: -> new Neo4jTransaction @
 
