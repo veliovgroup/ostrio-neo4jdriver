@@ -2,15 +2,17 @@ NTRU_def = process.env.NODE_TLS_REJECT_UNAUTHORIZED
 bound = Meteor.bindEnvironment (callback) -> return callback()
 
 events = Npm.require 'events'
+URL = Npm.require 'url'
+needle = Npm.require('needle')
 
-class Neo4jListener
-  constructor: (listener, @_db) ->
-    check listener, Function
-    @__id = Random.id()
-    @_db.listeners[@__id] = listener
-  unset: ->
-    @_db.listeners[@__id] = undefined
-    delete @_db.listeners[@__id]
+# class Neo4jListener
+#   constructor: (listener, @_db) ->
+#     check listener, Function
+#     @__id = Random.id()
+#     @_db.listeners[@__id] = listener
+#   unset: ->
+#     @_db.listeners[@__id] = undefined
+#     delete @_db.listeners[@__id]
 
 class Neo4jDB
   __proto__: events.EventEmitter.prototype;
@@ -31,8 +33,11 @@ class Neo4jDB
     @https = !!~@url.indexOf 'https://'
     check @base, String
 
+    if @https
+      @username = opts.username
+      @password = opts.password
+
     @__service = {}
-    @listeners = {}
     @batchResults = {}
     @ready = false
 
@@ -62,7 +67,8 @@ class Neo4jDB
       ,
         (error, results) =>
           if results?.data
-            @__proceedResult result for result in results.data
+            unless _.isEmpty results.data
+              @__proceedResult result for result in results.data
           else if results?.content
             content = JSON.parse results.content
             @__proceedResult result for result in content
@@ -112,10 +118,6 @@ class Neo4jDB
                 console.success "v#{endpoint}" if key is "neo4j_version"
             @ready = true
             console.success "Meteor is successfully connected to Neo4j on #{@url}"
-        when 401
-          throw new Error JSON.stringify response
-        when 403
-          throw new Error JSON.stringify response
         else
           throw new Error JSON.stringify response
     else
@@ -136,18 +138,33 @@ class Neo4jDB
     else
       options.headers = @defaultHeaders
 
-    options = _.extend options, timeout: 10000
+    options.json = true
+    options.read_timeout = 1000
+    options.parse_response = 'json'
+    options.follow_max = 10
+    _url = URL.parse(url)
+    options.proxy = "#{_url.protocol}//#{@username}:#{@password}@#{_url.host}" if @https
+
+    request = (method, url, body, options, callback) ->
+      needle.request method, url, body, options, (error, response)->
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = NTRU_def
+        unless error
+          result = 
+            statusCode: response.statusCode
+            headers: response.headers
+            content: response.raw.toString 'utf8'
+            data: response.body
+        callback and callback.call @, error, result
 
     try
       unless callback
-        res = @__httpCallSync method, url, options
-        process.env.NODE_TLS_REJECT_UNAUTHORIZED = NTRU_def
-        return res
+        return Meteor.wrapAsync((cb) ->
+          request method, url, options.data, options, cb
+        )()
       else
-        HTTP.call method, url, options, ->
-          process.env.NODE_TLS_REJECT_UNAUTHORIZED = NTRU_def
-          callback.apply @, arguments
+        return request method, url, options.data, options, callback
     catch error
+      console.error "Error sending request to Neo4j (GrapheneDB) server:"
       console.error error
 
   __parseNode: (currentNode) ->
@@ -228,7 +245,7 @@ class Neo4jDB
     
     return response
 
-  listen: (listener) -> new Neo4jListener listener, @
+  # listen: (listener) -> new Neo4jListener listener, @
 
   queryOne: (cypher, opts = {}) ->
     check cypher, String
