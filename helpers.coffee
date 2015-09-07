@@ -1,5 +1,10 @@
-console.success = (message) -> console.info '\x1b[1m', '\x1b[32m', message, '\x1b[39m', '\x1b[22m'
-console.error = (message) -> console.info '\x1b[1m', '\x1b[31m', message, '\x1b[39m', '\x1b[22m'
+console.success = -> console.info.apply null, colorizeForApply arguments, '32'
+console.error = -> console.info.apply null, colorizeForApply arguments, '31'
+colorizeForApply = (args, color) ->
+  messages = ['\x1b[1m', "\x1b[#{color}m"]
+  (messages.push arg for arg in args)
+  messages.push '\x1b[39m', '\x1b[22m'
+  return messages
 
 Function::define = (name, getSet) -> Object.defineProperty @prototype, name, getSet
 
