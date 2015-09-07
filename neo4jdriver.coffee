@@ -53,14 +53,24 @@ class Neo4jDB
             @__cleanUpResponse response, (result) => @__proceedResult result
           else
             console.error error
+            console.trace()
       cb and cb()
   , 50
 
   __cleanUpResponse: (response, cb) ->
-    if response?.data
+    if response?.data and _.isObject response.data
       @__cleanUpResults response.data, cb
-    else if response?.content
-      @__cleanUpResults JSON.parse(response.content), cb
+    else if response?.content and _.isString response.content
+      try
+        @__cleanUpResults JSON.parse(response.content), cb
+      catch error
+        console.error "Neo4j response error (Check your cypher queries):", error
+        console.error "Original received data:"
+        console.log response.content
+        console.trace()
+    else
+      console.error "Empty response from Neo4j, but expecting data"
+      console.trace()
 
   __cleanUpResults: (results, cb) ->
     if results?.results or results?.errors
@@ -165,6 +175,7 @@ class Neo4jDB
     catch error
       console.error "Error sending request to Neo4j (GrapheneDB) server:"
       console.error error
+      console.trace()
 
   __parseNode: (currentNode) ->
     node = _service: {}
@@ -230,7 +241,7 @@ class Neo4jDB
           parsed = parsed.concat @__parseResponse result.data, result.columns, reactive
         return parsed
       else
-        return response.exception
+        console.error response.exception
 
     if response?.columns and response?.data
       unless _.isEmpty response.data
@@ -255,16 +266,18 @@ class Neo4jDB
       return @
 
   __parseSettings: (settings, opts = {}, callback) ->
-    if _.isObject settings
-      {cypher, query, opts, parameters, params, callback, cb, resultDataContents, reactive, reactiveNodes} = settings
-    else
-      if _.isFunction opts
-        callback = opts
-        opts = {}
-
-    if _.isString settings
+    if _.isArray settings
       cypher = settings
       settings = {}
+    else if _.isObject settings
+      {cypher, query, opts, parameters, params, callback, cb, resultDataContents, reactive, reactiveNodes} = settings
+    else if _.isString settings
+      cypher = settings
+      settings = {}
+    
+    if _.isFunction opts
+      callback = opts
+      opts = {}
 
     opts     ?= {}
     cypher   ?= query
