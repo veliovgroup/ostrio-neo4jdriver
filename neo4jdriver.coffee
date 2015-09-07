@@ -220,11 +220,11 @@ class Neo4jDB
 
       if _.isObject row.node[index]
         if row.isRest
-          node[column] = new Neo4jNode @__parseNode(row.node[index]), reactive
+          node[column] = new Neo4jData @__parseNode(row.node[index]), reactive
         else
-          node[column] = new Neo4jNode row.node[index], false
+          node[column] = new Neo4jData row.node[index], false
       else
-        node[column] = new Neo4jNode row.node[index], false
+        node[column] = new Neo4jData row.node[index], false
     return node
 
   __parseResponse: (data, columns, reactive) ->
@@ -250,9 +250,9 @@ class Neo4jDB
         return []
 
     if response?.data and response?.metadata
-      return new Neo4jNode @__parseNode(response), if response?.self then reactive else false
+      return new Neo4jData @__parseNode(response), if response?.self then reactive else false
     
-    return new Neo4jNode response
+    return new Neo4jData response
 
   __getCursor: (request, callback, reactive) ->
     unless callback
@@ -347,9 +347,12 @@ class Neo4jDB
 
     return @__getCursor task, callback, reactive
 
-  # nodes:
+  
+  # node: (id) ->
   #   get: (id) ->
-  #   create: (id) ->
+  #   create: (id, properties) ->
+  #   delete: (id) ->
+
 
   batch: (tasks, callback, plain = false, reactive = false) ->
     check tasks, [Object]

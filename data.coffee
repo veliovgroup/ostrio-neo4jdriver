@@ -3,9 +3,9 @@
 @summary Represents Node state, relations, and data
          Represents as Nodes and Relationships, as well
          Might be reactive data source, if `_isReactive` passed as `true` - data of node will be updated before returning
-@class Neo4jNode
+@class Neo4jData
 ###
-class Neo4jNode
+class Neo4jData
   constructor: (@_node, @_isReactive = false) -> @__refresh()
   __refresh: -> @_expire = (+new Date) + 2000
 
@@ -18,13 +18,13 @@ class Neo4jNode
         @_node
     set: (newVal) -> 
       @_node = newVal unless EJSON.equals @_node, newVal
-      
+
   ###
   @locus Server
   @summary Get node data, if node was requested with REST data
            and it's reactive, will return updated node's data
   @name get
-  @class Neo4jNode
+  @class Neo4jData
   @url http://neo4j.com/docs/2.2.5/rest-api-nodes.html#rest-api-get-node
   @returns {Object | [Object] | [String]} - Depends from cypher query
   ###
@@ -34,7 +34,7 @@ class Neo4jNode
   @locus Server
   @summary Update node data, only if node was requested with REST data
   @name update
-  @class Neo4jNode
+  @class Neo4jData
   @url http://neo4j.com/docs/2.2.5/rest-api-nodes.html#rest-api-get-node
   @returns {Object | [Object] | [String]} - Depends from cypher query
   ###

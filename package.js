@@ -10,7 +10,7 @@ Package.onUse(function(api) {
   api.addFiles([
     'helpers.coffee',
     'cursor.coffee',
-    'node.coffee',
+    'data.coffee',
     'endpoint.coffee',
     'transaction.coffee',
     'neo4jdriver.coffee'
@@ -19,6 +19,7 @@ Package.onUse(function(api) {
   api.export([
     'Neo4jCursor',
     'Neo4jNode',
+    'Neo4jData',
     'Neo4jEndpoint',
     'Neo4jTransaction',
     'Neo4jDB'
