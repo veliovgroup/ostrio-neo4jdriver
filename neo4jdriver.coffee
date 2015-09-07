@@ -85,14 +85,14 @@ class Neo4jDB
   __proceedResult: (result) ->
     if result?.body
       if _.isEmpty result.body?.errors
-        @emit result.id, null, result.body
+        @emit result.id, null, result.body, result.id
       else
         for error in result.body.errors
           console.error error.message
           console.error {code: error.code}
-        @emit result.id, null, []
+        @emit result.id, null, [], result.id
     else
-      @emit result.id, null, []
+      @emit result.id, null, [], result.id
 
   __batch: (task, callback, reactive = false) ->
     check task, Object
@@ -222,9 +222,9 @@ class Neo4jDB
         if row.isRest
           node[column] = new Neo4jNode @__parseNode(row.node[index]), reactive
         else
-          node[column] = new Neo4jNode row.node[index]
+          node[column] = new Neo4jNode row.node[index], false
       else
-        node[column] = row.node[index]
+        node[column] = new Neo4jNode row.node[index], false
     return node
 
   __parseResponse: (data, columns, reactive) ->
@@ -250,9 +250,9 @@ class Neo4jDB
         return []
 
     if response?.data and response?.metadata
-      return @__parseNode response, reactive
+      return new Neo4jNode @__parseNode(response), if response?.self then reactive else false
     
-    return response
+    return new Neo4jNode response
 
   __getCursor: (request, callback, reactive) ->
     unless callback
@@ -339,8 +339,12 @@ class Neo4jDB
 
     return @__getCursor task, callback, reactive
 
-  batch: (tasks, callback) ->
+  batch: (tasks, callback, plain = false, reactive = false) ->
     check tasks, [Object]
+    check callback, Match.Optional Function
+    check plain, Boolean
+    check reactive, Boolean
+
     results = []
     ids = []
     for task in tasks
@@ -349,15 +353,17 @@ class Neo4jDB
       check task.body, Match.Optional Object
 
       task.to = task.to.replace @root, ''
-      task.id = Math.floor(Math.random()*(999999999-1+1)+1)
+      task.id ?= Math.floor(Math.random()*(999999999-1+1)+1)
       ids.push task.id
       @emit 'query', task.id, task
 
     wait = (cb) =>
       qty = ids.length
       for id in ids
-        @once id, (error, response) =>
+        @once id, (error, response, id) =>
           --qty
+          response = if plain then response else @__transformData _.clone(response), reactive
+          response._batchId = id
           results.push response
           cb null, results if qty is 0
 

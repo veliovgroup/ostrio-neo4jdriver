@@ -3,9 +3,9 @@ class Neo4jEndpoint
     check @key, String
     check @endpoint, String
   get: (method = 'GET', body = {}, callback) -> 
-    @_db.__batch
+    @_db.__batch(
       method: method
       to: @endpoint
       body: body
     ,
-      callback
+      callback).get()
