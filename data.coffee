@@ -40,5 +40,8 @@ class Neo4jData
   ###
   update: ->
     if @_node?._service
-      @node = @_node._service.self.get()
-    return @
+      fut = new Future()
+      @_node._service.self.get 'GET', {}, (error, data) => fut.return @
+      return fut.wait()
+    else
+      return @
