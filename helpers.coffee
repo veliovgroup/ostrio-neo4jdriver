@@ -1,6 +1,8 @@
 console.success = (message) -> console.info '\x1b[1m', '\x1b[32m', message, '\x1b[39m', '\x1b[22m'
 console.error = (message) -> console.info '\x1b[1m', '\x1b[31m', message, '\x1b[39m', '\x1b[22m'
 
+Function::define = (name, getSet) -> Object.defineProperty @prototype, name, getSet
+
 @NTRU_def = process.env.NODE_TLS_REJECT_UNAUTHORIZED
 @bound = Meteor.bindEnvironment (callback) -> return callback()
 
