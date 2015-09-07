@@ -7,8 +7,22 @@ Package.describe({
 
 Package.onUse(function(api) {
   api.versionsFrom('1.0');
-  api.addFiles(['helpers.coffee', 'cursor.coffee', 'node.coffee', 'endpoint.coffee', 'neo4jdriver.coffee'], 'server');
-  api.export(['Neo4jCursor', 'Neo4jNode', 'Neo4jEndpoint', 'Neo4jDB'], 'server');
+  api.addFiles([
+    'helpers.coffee',
+    'cursor.coffee',
+    'node.coffee',
+    'endpoint.coffee',
+    'transaction.coffee',
+    'neo4jdriver.coffee'
+  ], 'server');
+
+  api.export([
+    'Neo4jCursor',
+    'Neo4jNode',
+    'Neo4jEndpoint',
+    'Neo4jTransaction',
+    'Neo4jDB'
+  ], 'server');
   api.use(['check', 'http', 'coffeescript', 'underscore', 'random', 'ejson'], 'server');
 });
 

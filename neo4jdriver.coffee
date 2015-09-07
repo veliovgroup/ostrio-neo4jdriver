@@ -1,21 +1,5 @@
-NTRU_def = process.env.NODE_TLS_REJECT_UNAUTHORIZED
-bound = Meteor.bindEnvironment (callback) -> return callback()
-
-events = Npm.require 'events'
-URL = Npm.require 'url'
-needle = Npm.require('needle')
-
-# class Neo4jListener
-#   constructor: (listener, @_db) ->
-#     check listener, Function
-#     @__id = Random.id()
-#     @_db.listeners[@__id] = listener
-#   unset: ->
-#     @_db.listeners[@__id] = undefined
-#     delete @_db.listeners[@__id]
-
 class Neo4jDB
-  __proto__: events.EventEmitter.prototype;
+  __proto__: events.EventEmitter.prototype
   constructor: (@url, opts = {}) ->
     events.EventEmitter.call @
     @url = @url or process.env.NEO4J_URL or process.env.GRAPHENEDB_URL or 'http://localhost:7474'
@@ -38,7 +22,6 @@ class Neo4jDB
       @password = opts.password
 
     @__service = {}
-    @batchResults = {}
     @ready = false
 
     @defaultHeaders = Accept: "application/json", 'X-Stream': 'true'
@@ -65,16 +48,29 @@ class Neo4jDB
       ,
         'POST'
       ,
-        (error, results) =>
-          if results?.data
-            unless _.isEmpty results.data
-              @__proceedResult result for result in results.data
-          else if results?.content
-            content = JSON.parse results.content
-            @__proceedResult result for result in content
+        (error, response) =>
+          unless error
+            @__cleanUpResponse response, (result) => @__proceedResult result
+          else
+            console.error error
       cb and cb()
-
   , 50
+
+  __cleanUpResponse: (response, cb) ->
+    if response?.data
+      @__cleanUpResults response.data, cb
+    else if response?.content
+      @__cleanUpResults JSON.parse(response.content), cb
+
+  __cleanUpResults: (results, cb) ->
+    if results?.results or results?.errors
+      errors = results?.errors
+      results = results?.results
+
+    unless _.isEmpty errors
+      console.error error.code, error.message for error in errors
+    else if not _.isEmpty results
+      cb result for result in results
 
   __proceedResult: (result) ->
     if result?.body
@@ -88,7 +84,12 @@ class Neo4jDB
     else
       @emit result.id, null, []
 
-  __batch: (task, callback, reactive) ->
+  __batch: (task, callback, reactive = false) ->
+    check task, Object
+    check task.to, String
+    check callback, Match.Optional Function
+    check reactive, Boolean
+
     task.to = task.to.replace @root, ''
     task.id = Math.floor(Math.random()*(999999999-1+1)+1)
     @emit 'query', task.id, task
@@ -122,8 +123,6 @@ class Neo4jDB
           throw new Error JSON.stringify response
     else
       throw new Error "Error with connection to Neo4j"
-
-  __httpCallSync: Meteor.wrapAsync HTTP.call
 
   __call: (url, options = {}, method = 'GET', callback) ->
     check url, String
@@ -227,9 +226,8 @@ class Neo4jDB
     if response?.results or response?.errors
       unless response.exception
         parsed = []
-        for result in response.results
-          if result?.data
-            parsed = parsed.concat @__parseResponse result.data, result.columns, reactive
+        for result in response.results when result?.data
+          parsed = parsed.concat @__parseResponse result.data, result.columns, reactive
         return parsed
       else
         return response.exception
@@ -245,22 +243,24 @@ class Neo4jDB
     
     return response
 
-  # listen: (listener) -> new Neo4jListener listener, @
+  __getCursor: (request, callback, reactive) ->
+    unless callback
+      return Meteor.wrapAsync((cb)=>
+        cb null, new Neo4jCursor @__batch request, undefined, reactive
+      )()
+    else
+      @__batch request, (error, data) ->
+        callback null, new Neo4jCursor data
+      , reactive
+      return @
 
-  queryOne: (cypher, opts = {}) ->
-    check cypher, String
-    check opts, Object
-    return @query(cypher, opts).fetch()[0]
-
-  queryAsync: (cypher, opts) -> @query cypher, opts, () -> return undefined
-
-  query: (settings, opts, callback) ->
+  __parseSettings: (settings, opts = {}, callback) ->
     if _.isObject settings
       {cypher, query, opts, parameters, params, callback, cb, resultDataContents, reactive, reactiveNodes} = settings
     else
       if _.isFunction opts
-        callback = _.clone opts
-        opts = undefined
+        callback = opts
+        opts = {}
 
     if _.isString settings
       cypher = settings
@@ -274,10 +274,31 @@ class Neo4jDB
     reactive ?= false
     resultDataContents ?= ['REST']
 
-    check cypher, String
-    check opts, Object
     check settings, Object
+    check cypher, Match.OneOf String, [String]
+    check opts, Object
     check callback, Match.Optional Function
+    check resultDataContents, [String]
+    check reactive, Boolean
+
+    return {opts, cypher, callback, resultDataContents, reactive}
+
+
+  ##################
+  # Public Methods #
+  ##################
+  commit: (cypher, opts, callback) -> @query settings, opts, callback
+  queryOne: (cypher, opts = {}) -> @query(cypher, opts).fetch()[0]
+  querySync: (cypher, opts) -> @query cypher, opts
+  queryAsync: (cypher, opts, callback) -> 
+    if _.isFunction opts
+      callback = opts
+      opts = {}
+    callback = -> return unless callback
+    return @query cypher, opts, callback
+
+  query: (settings, opts = {}, callback) ->
+    {cypher, opts, callback, resultDataContents, reactive} = @__parseSettings settings, opts, callback
 
     request = 
       method: 'POST'
@@ -289,46 +310,20 @@ class Neo4jDB
           resultDataContents: resultDataContents
         ]
 
-    unless callback
-      return Meteor.wrapAsync((cb)=>
-        cb null, new Neo4jCursor @__batch request, null, reactive
-      )()
-    else
-      @__batch request, (error, data) ->
-        callback null, new Neo4jCursor data
-      , reactive
-      return @
+    return @__getCursor request, callback, reactive
 
-  # cypher: (cypher, opts = {}, callback) ->
-  #   check cypher, String
-  #   check opts, Object
-  #   check callback, Match.Optional Function
+  cypher: (cypher, opts = {}, callback, reactive) ->
+    check cypher, String
+    check opts, Object
+    check callback, Match.Optional Function
 
-  #   if type is 'cypher'
-  #     request = 
-  #       method: 'POST'
-  #       to: @__service.cypher.endpoint
-  #       body:
-  #         query: cypher
-  #         params: opts
+    request = 
+      method: 'POST'
+      to: @__service.cypher.endpoint
+      body:
+        query: cypher
+        params: opts
 
-  #   unless callback
-  #     return Meteor.wrapAsync((cb)=>
-  #       cb null, new Neo4jCursor @__batch request, null, reactive
-  #     )()
-  #   else
-  #     @__batch request, (error, data) ->
-  #       callback null, new Neo4jCursor data
-  #     , reactive
-  #     return @
+    return @__getCursor request, callback, reactive
 
-#   transaction: -> new Neo4jTransaction @
-
-# class Neo4jTransaction
-#   constructor: (_db) ->
-#     request = 
-#       method: 'POST'
-#       to: _db.__service.transaction.endpoint
-#       body:
-#         statements: []
-#     console.log _db.__batch request
+  transaction: (settings, opts = {}) -> new Neo4jTransaction @, settings, opts
