@@ -1,8 +1,10 @@
 class Neo4jCursor
   constructor: (@_cursor) ->
-  fetch: -> 
+  fetch: (firstOnly) -> 
     data = []
-    @forEach (row) -> data.push row
+    @forEach (row) -> 
+      data.push row
+    , firstOnly
     data
 
   toMongo: (MongoCollection) ->
@@ -17,7 +19,6 @@ class Neo4jCursor
 
     nodes = {}
     @forEach (row) ->
-
       for nodeAlias, node of row
         if node?id
           nodes[node.id] ?= columns: [nodeAlias]
@@ -36,7 +37,7 @@ class Neo4jCursor
 
   each: (callback) -> @forEach callback
 
-  forEach: (callback) ->
+  forEach: (callback, firstOnly) ->
     check callback, Function
     for row, rowId in @cursor
       data = {}
@@ -47,6 +48,7 @@ class Neo4jCursor
           else
             data[nodeAlias] = node
       callback data, rowId
+      break if firstOnly
     return undefined
 
   @define 'cursor',

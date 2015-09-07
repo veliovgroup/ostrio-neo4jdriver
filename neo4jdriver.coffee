@@ -300,14 +300,17 @@ class Neo4jDB
   ##################
   # Public Methods #
   ##################
-  commit: (cypher, opts, callback) -> @query settings, opts, callback
-  queryOne: (cypher, opts = {}) -> @query(cypher, opts).fetch()[0]
-  querySync: (cypher, opts) -> @query cypher, opts
+  queryOne: (cypher, opts) -> @query(cypher, opts).fetch(true)[0]
+  querySync: (cypher, opts) -> 
+    check cypher, String
+    check opts, Match.Optional Object
+    @query cypher, opts
   queryAsync: (cypher, opts, callback) -> 
     if _.isFunction opts
       callback = opts
       opts = {}
-    callback = -> return unless callback
+    unless callback
+      callback = -> return 
     return @query cypher, opts, callback
 
   query: (settings, opts = {}, callback) ->
@@ -326,9 +329,14 @@ class Neo4jDB
     return @__getCursor task, callback, reactive
 
   cypher: (cypher, opts = {}, callback, reactive) ->
+    if _.isFunction opts
+      reactive = callback
+      callback = opts
+      opts = {}
     check cypher, String
     check opts, Object
     check callback, Match.Optional Function
+    check reactive, Match.Optional Boolean
 
     task = 
       method: 'POST'
@@ -338,6 +346,10 @@ class Neo4jDB
         params: opts
 
     return @__getCursor task, callback, reactive
+
+  # nodes:
+  #   get: (id) ->
+  #   create: (id) ->
 
   batch: (tasks, callback, plain = false, reactive = false) ->
     check tasks, [Object]
