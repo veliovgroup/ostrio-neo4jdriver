@@ -1,6 +1,6 @@
 ###
 @locus Server
-@summary Represents Node state, relations, and data
+@summary Represents Data state, relations, and data
          Represents as Nodes and Relationships, as well
          Might be reactive data source, if `_isReactive` passed as `true` - data of node will be updated before returning
 @class Neo4jData
@@ -21,8 +21,8 @@ class Neo4jData
 
   ###
   @locus Server
-  @summary Get node data, if node was requested with REST data
-           and it's reactive, will return updated node's data
+  @summary Get Neo4j data, if data was requested with REST data
+           and it's reactive, will return updated data
   @name get
   @class Neo4jData
   @url http://neo4j.com/docs/2.2.5/rest-api-nodes.html#rest-api-get-node
@@ -32,7 +32,7 @@ class Neo4jData
 
   ###
   @locus Server
-  @summary Update node data, only if node was requested with REST data
+  @summary Update Neo4j data, only if data was requested as REST
   @name update
   @class Neo4jData
   @url http://neo4j.com/docs/2.2.5/rest-api-nodes.html#rest-api-get-node
