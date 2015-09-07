@@ -33,7 +33,7 @@ class Neo4jDB
     @on 'query', (id, task) => 
       tasks.push task
       if @ready
-        @emit 'batch', tasks, -> tasks = [] 
+        @emit 'batch', tasks, -> tasks = []
     
     @__connect()
 
@@ -313,7 +313,7 @@ class Neo4jDB
   query: (settings, opts = {}, callback) ->
     {cypher, opts, callback, resultDataContents, reactive} = @__parseSettings settings, opts, callback
 
-    request = 
+    task = 
       method: 'POST'
       to: @__service.transaction.endpoint + '/commit'
       body:
@@ -323,20 +323,48 @@ class Neo4jDB
           resultDataContents: resultDataContents
         ]
 
-    return @__getCursor request, callback, reactive
+    return @__getCursor task, callback, reactive
 
   cypher: (cypher, opts = {}, callback, reactive) ->
     check cypher, String
     check opts, Object
     check callback, Match.Optional Function
 
-    request = 
+    task = 
       method: 'POST'
       to: @__service.cypher.endpoint
       body:
         query: cypher
         params: opts
 
-    return @__getCursor request, callback, reactive
+    return @__getCursor task, callback, reactive
+
+  batch: (tasks, callback) ->
+    check tasks, [Object]
+    results = []
+    ids = []
+    for task in tasks
+      check task.method, Match.OneOf 'POST', 'GET', 'PUT', 'DELETE', 'HEAD'
+      check task.to, String
+      check task.body, Match.Optional Object
+
+      task.to = task.to.replace @root, ''
+      task.id = Math.floor(Math.random()*(999999999-1+1)+1)
+      ids.push task.id
+      @emit 'query', task.id, task
+
+    wait = (cb) =>
+      qty = ids.length
+      for id in ids
+        @once id, (error, response) =>
+          --qty
+          results.push response
+          cb null, results if qty is 0
+
+    unless callback
+      return Meteor.wrapAsync((cb) => wait(cb))()
+    else
+      wait callback
+      return @
 
   transaction: (settings, opts = {}) -> new Neo4jTransaction @, settings, opts
