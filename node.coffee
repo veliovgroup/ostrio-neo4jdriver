@@ -1,5 +1,5 @@
 class Neo4jNode
-  constructor: (@_node, @isReactive) -> @newExpire()
+  constructor: (@_node, @isReactive = false) -> @newExpire()
   newExpire: -> @expire = (+new Date) + 2000
   get: -> @node
   update: ->
