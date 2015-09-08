@@ -27,6 +27,11 @@ Package.onUse(function(api) {
   api.use(['check', 'http', 'coffeescript', 'underscore', 'random', 'ejson'], 'server');
 });
 
+Package.onTest(function(api) {
+  api.use(['coffeescript', 'ostrio:neo4jdriver', 'tinytest', 'underscore'], 'server');
+  api.addFiles(['helpers.coffee', 'tests.coffee'], 'server');
+});
+
 Npm.depends({
   'needle': '0.10.0'
 })
