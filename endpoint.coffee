@@ -8,4 +8,4 @@ class Neo4jEndpoint
       to: @endpoint
       body: body
     ,
-      callback).get()
+      callback).get?()
