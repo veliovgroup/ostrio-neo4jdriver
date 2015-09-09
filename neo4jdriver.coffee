@@ -22,40 +22,55 @@ class Neo4jDB
       @password = opts.password
 
     @__service = {}
-    @ready = false
+    @_ready = false
 
     @defaultHeaders = Accept: "application/json", 'X-Stream': 'true'
     @defaultHeaders = _.extend @defaultHeaders, opts.headers if opts?.headers
     @defaultHeaders.Authorization = "Basic " + (new Buffer("#{opts.username}:#{opts.password}").toString('base64')) if opts.password and opts.username
 
+    @['__emitBatch'] = -> return
+
+    @on 'ready', => @_ready = true
+
+    @on 'send', (fut, cb) ->
+      if @_ready
+        cb fut
+      else
+        @once 'ready', => cb fut
+
     @on 'batch', @__request
+
     tasks = []
+
     @on 'query', (id, task) => 
       tasks.push task
-      if @ready
-        @emit 'batch', tasks, -> tasks = []
+      _eb = _.once =>
+        @emit 'batch', tasks
+        tasks = []
+
+      if @_ready
+        process.nextTick => _eb()
+      else
+        @once 'ready', => process.nextTick => _eb()
     
     @__connect()
 
-  __request: _.throttle (tasks, cb) ->
-    bound =>
-      @__call @__service.batch.endpoint
-      , 
-        data: tasks
-        headers:
-          Accept: 'application/json; charset=UTF-8'
-          'Content-Type': 'application/json'
-      ,
-        'POST'
-      ,
-        (error, response) =>
-          unless error
-            @__cleanUpResponse response, (result) => @__proceedResult result
-          else
-            console.error error
-            console.trace()
-      cb and cb()
-  , 50
+  __request: (tasks, cb) ->
+    @__call @__service.batch.endpoint
+    , 
+      data: tasks
+      headers:
+        Accept: 'application/json; charset=UTF-8'
+        'Content-Type': 'application/json'
+    ,
+      'POST'
+    ,
+      (error, response) =>
+        unless error
+          @__cleanUpResponse response, (result) => @__proceedResult result
+        else
+          console.error error
+          console.trace()
 
   __cleanUpResponse: (response, cb) ->
     if response?.data and _.isObject response.data
@@ -64,7 +79,7 @@ class Neo4jDB
       try
         @__cleanUpResults JSON.parse(response.content), cb
       catch error
-        console.error "Neo4j response error (Check your cypher queries):", error
+        console.error "Neo4j response error (Check your cypher queries):", [response.statusCode], error
         console.error "Original received data:"
         console.log response.content
         console.trace()
@@ -90,11 +105,11 @@ class Neo4jDB
         for error in result.body.errors
           console.error error.message
           console.error {code: error.code}
-        @emit result.id, null, [], result.id
+        @emit result.id, error?.message, [], result.id
     else
       @emit result.id, null, [], result.id
 
-  __batch: (task, callback, reactive = false) ->
+  __batch: (task, callback, reactive = false, noTransform = false) ->
     check task, Object
     check task.to, String
     check callback, Match.Optional Function
@@ -102,37 +117,39 @@ class Neo4jDB
 
     task.to = task.to.replace @root, ''
     task.id = Math.floor(Math.random()*(999999999-1+1)+1)
+
     @emit 'query', task.id, task
     unless callback
-      return Meteor.wrapAsync((cb) =>
+      return __wait (fut) =>
         @once task.id, (error, response) =>
-          bound => cb error, @__transformData _.clone(response), reactive
-      )()
+          bound => 
+            fut.throw error if error
+            fut.return if noTransform then response else @__transformData _.clone(response), reactive
     else
       @once task.id, (error, response) =>
-        bound => callback error, @__transformData _.clone(response), reactive
+        bound => callback error, if noTransform then response else @__transformData _.clone(response), reactive
 
   __connect: -> 
-    response = @__call @root
-    if response?.statusCode
-      switch response.statusCode
-        when 200
-          if response.data.password_change_required
-            throw new Error "To connect to Neo4j - password change is required, please proceed to #{response.data.password_change}"
+    @__call @root, {}, 'GET', (error, response) =>
+      if response?.statusCode
+        switch response.statusCode
+          when 200
+            if response.data.password_change_required
+              throw new Error "To connect to Neo4j - password change is required, please proceed to #{response.data.password_change}"
+            else
+              for key, endpoint of response.data
+                if _.isString endpoint
+                  if !!~endpoint.indexOf '://'
+                    @__service[key] = new Neo4jEndpoint key, endpoint, @
+                  else
+                    @__service[key] = get: -> endpoint
+                  console.success "v#{endpoint}" if key is "neo4j_version"
+              @emit 'ready'
+              console.success "Successfully connected to Neo4j on #{@url}"
           else
-            for key, endpoint of response.data
-              if _.isString endpoint
-                if !!~endpoint.indexOf '://'
-                  @__service[key] = new Neo4jEndpoint key, endpoint, @
-                else
-                  @__service[key] = get: -> endpoint
-                console.success "v#{endpoint}" if key is "neo4j_version"
-            @ready = true
-            console.success "Meteor is successfully connected to Neo4j on #{@url}"
-        else
-          throw new Error JSON.stringify response
-    else
-      throw new Error "Error with connection to Neo4j"
+            throw new Error JSON.stringify response
+      else
+        throw new Error "Error with connection to Neo4j"
 
   __call: (url, options = {}, method = 'GET', callback) ->
     check url, String
@@ -148,7 +165,7 @@ class Neo4jDB
       options.headers = @defaultHeaders
 
     options.json = true
-    options.read_timeout = 1000
+    options.read_timeout = 10000
     options.parse_response = 'json'
     options.follow_max = 10
     _url = URL.parse(url)
@@ -163,13 +180,14 @@ class Neo4jDB
             headers: response.headers
             content: response.raw.toString 'utf8'
             data: response.body
-        callback and callback.call @, error, result
+        callback and callback error, result
 
     try
       unless callback
-        return Meteor.wrapAsync((cb) ->
-          request method, url, options.data, options, cb
-        )()
+        return __wait (fut) ->
+          request method, url, options.data, options, (error, response) ->
+          fut.throw error if error
+          fut.return response
       else
         return request method, url, options.data, options, callback
     catch error
@@ -256,16 +274,18 @@ class Neo4jDB
 
   __getCursor: (request, callback, reactive) ->
     unless callback
-      return Meteor.wrapAsync((cb)=>
-        cb null, new Neo4jCursor @__batch request, undefined, reactive
-      )()
+      return __wait (fut) =>
+        @__batch request, (error, data) ->
+          console.error error if error
+          fut.return new Neo4jCursor data
+        , reactive
     else
       @__batch request, (error, data) ->
-        callback null, new Neo4jCursor data
+        callback error, new Neo4jCursor data
       , reactive
       return @
 
-  __parseSettings: (settings, opts = {}, callback) ->
+  __parseSettings: (settings, opts, callback) ->
     if _.isArray settings
       cypher = settings
       settings = {}
@@ -281,7 +301,7 @@ class Neo4jDB
 
     opts     ?= {}
     cypher   ?= query
-    opts     ?= parameters or params
+    opts     = parameters or params or {} if not opts or _.isEmpty opts
     callback ?= cb
     reactive ?= reactive or reactiveNodes
     reactive ?= false
@@ -347,13 +367,6 @@ class Neo4jDB
 
     return @__getCursor task, callback, reactive
 
-  
-  # node: (id) ->
-  #   get: (id) ->
-  #   create: (id, properties) ->
-  #   delete: (id) ->
-
-
   batch: (tasks, callback, plain = false, reactive = false) ->
     check tasks, [Object]
     check callback, Match.Optional Function
@@ -383,9 +396,120 @@ class Neo4jDB
           cb null, results if qty is 0
 
     unless callback
-      return Meteor.wrapAsync((cb) => wait(cb))()
+      return __wait (fut) -> wait (error, results) -> fut.return results
     else
       wait callback
       return @
 
   transaction: (settings, opts = {}) -> new Neo4jTransaction @, settings, opts
+  nodes: (id, reactive) -> new Neo4jNode @, id, reactive
+
+class Neo4jNode extends Neo4jData
+  _.extend @::, events.EventEmitter.prototype
+  constructor: (@_db, @_id, @_isReactive = false) ->
+    events.EventEmitter.call @
+    @_ready = false
+    @on 'ready', (node, fut) =>
+      if node and not _.isEmpty node
+        console.log "[onReady]", {@_ready}
+        super @_db.__parseNode(node), @_isReactive
+        @_ready = true
+        console.log 
+        fut.return @ if fut
+        console.log "[onReady]", {@_ready}
+      else
+        fut.return undefined if fut
+
+    @on 'create', (properties, fut) =>
+      unless @_ready
+        @_db.__batch
+          method: 'POST'
+          to: @_db.__service.node.endpoint
+          body: properties
+        , 
+          (error, node) =>
+            if node?.metadata
+              @_id = node.metadata.id
+              @emit 'ready', node, fut
+        , @_isReactive, true
+        return
+      else
+        console.error "You already in node instance, create new one by calling, `db.nodes().create()`"
+        fut.return @
+
+    @on 'setProperty', (name, value, fut) =>
+      if @_ready then @__setProperty name, value, fut else @once 'ready', => @__setProperty name, value, fut
+      return
+
+    @on 'delete', (fut) =>
+      if @_ready then @__delete fut else @once 'ready', => @__delete fut
+      return
+
+    @on 'get', (cb) =>
+      if @_ready then cb() else @once 'ready', => cb()
+      return
+
+    if @_id
+      task = 
+        method: 'GET'
+        to: @_db.__service.node.endpoint + '/' + @_id
+
+      @_db.__batch task, (error, node) =>
+        @emit 'ready', node
+      , @_isReactive, true
+
+  get: ->
+    __wait (fut) => @emit 'get', => fut.return super
+
+  __delete: (fut) ->
+    @_db.__batch 
+      method: 'DELETE'
+      to: @_node._service.self.endpoint
+    , 
+      => fut.return undefined
+    , undefined, true
+    return
+
+  __setProperty: (name, value, fut) ->
+    @_node[name] = value
+    @_db.__batch 
+      method: 'PUT'
+      to: @_node._service.property.endpoint.replace '{key}', name
+      body: value
+    , 
+      => fut.return @
+    , undefined, true
+    return
+
+  __updateProperties: (name, value, fut) ->
+    
+  create: (properties = {}) ->
+    check properties, Match.Optional Object
+    __wait (fut) => @emit 'create', properties, fut
+
+  delete: -> __wait (fut) => @emit 'delete', fut
+
+  properties: -> _.emit @_node, ['_service', 'id', 'labels', 'metadata']
+
+  setProperty: (name, value) ->
+    check name, String
+    check value, Match.OneOf String, Number, Boolean, [String], [Number], [Boolean]
+    __wait (fut) => @emit 'setProperty', name, value, fut
+
+  setProperties: (nameValue) ->
+    check nameValue, Object
+    __wait (fut) => @emit 'setProperties', nameValue, fut
+
+  updateProperties: (nameValue) ->
+    check name, Object
+    @_node[name] = value
+    __wait (fut) => @emit 'updateProperties', nameValue, fut
+
+  property: (name, value) ->
+    check name, String
+    return @node[name] if not value
+    check value, Match.Optional Match.OneOf String, Number, Boolean, [String], [Number], [Boolean]
+    setProperty name unless @_node[name]
+    return updateProperty name, value
+
+  getProperty: (name) -> @node[name]
