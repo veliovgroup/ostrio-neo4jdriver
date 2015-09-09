@@ -28,21 +28,14 @@ class Neo4jDB
     @defaultHeaders = _.extend @defaultHeaders, opts.headers if opts?.headers
     @defaultHeaders.Authorization = "Basic " + (new Buffer("#{opts.username}:#{opts.password}").toString('base64')) if opts.password and opts.username
 
-    @['__emitBatch'] = -> return
 
     @on 'ready', => @_ready = true
-
-    @on 'send', (fut, cb) ->
-      if @_ready
-        cb fut
-      else
-        @once 'ready', => cb fut
-
     @on 'batch', @__request
 
     tasks = []
-
-    @on 'query', (id, task) => 
+    @on 'query', (task) => 
+      task.to = task.to.replace @root, ''
+      task.id ?= Math.floor(Math.random()*(999999999-1+1)+1)
       tasks.push task
       _eb = _.once =>
         @emit 'batch', tasks
@@ -55,7 +48,7 @@ class Neo4jDB
     
     @__connect()
 
-  __request: (tasks, cb) ->
+  __request: (tasks) ->
     @__call @__service.batch.endpoint
     , 
       data: tasks
@@ -115,10 +108,8 @@ class Neo4jDB
     check callback, Match.Optional Function
     check reactive, Boolean
 
-    task.to = task.to.replace @root, ''
-    task.id = Math.floor(Math.random()*(999999999-1+1)+1)
-
-    @emit 'query', task.id, task
+    task.id ?= Math.floor(Math.random()*(999999999-1+1)+1)
+    @emit 'query', task
     unless callback
       return __wait (fut) =>
         @once task.id, (error, response) =>
@@ -171,7 +162,7 @@ class Neo4jDB
     _url = URL.parse(url)
     options.proxy = "#{_url.protocol}//#{@username}:#{@password}@#{_url.host}" if @https
 
-    request = (method, url, body, options, callback) ->
+    request = (method, url, body, options, callback) =>
       needle.request method, url, body, options, (error, response)->
         process.env.NODE_TLS_REJECT_UNAUTHORIZED = NTRU_def
         unless error
@@ -380,10 +371,9 @@ class Neo4jDB
       check task.to, String
       check task.body, Match.Optional Object
 
-      task.to = task.to.replace @root, ''
       task.id ?= Math.floor(Math.random()*(999999999-1+1)+1)
       ids.push task.id
-      @emit 'query', task.id, task
+      @emit 'query', task
 
     wait = (cb) =>
       qty = ids.length
