@@ -1,6 +1,7 @@
 db = new Neo4jDB 'http://localhost:7474', {username: 'neo4j', password: '1234'}
 
 
+
 __nodeCRC__ = (test, node, labels, props) ->
   test.isTrue _.has node, 'id'
   test.isTrue _.isNumber node.id
@@ -32,7 +33,7 @@ __nodeCRC__ = (test, node, labels, props) ->
 query: (cypher, opts = {}) ->
 ###
 Tinytest.add 'db.query [BASICS]', (test) ->
-  test.isTrue _.isFunction(db.query), 'db.query Exists'
+  test.isTrue _.isFunction(db.query), "[query] Exists on DB object"
   cursors = []
   cursors.push db.query "CREATE (n:QueryTestBasics {data}) RETURN n", data: foo: 'bar'
   cursors.push db.query "MATCH (n:QueryTestBasics) RETURN n"
@@ -88,6 +89,21 @@ Tinytest.add 'db.query [BASICS]', (test) ->
 @description Test standard query, Synchronous, with replacements
 query: (cypher, opts = {}) ->
 ###
+
+###
+Any idea how to test this one?
+It throws an exception inside driver
+###
+# Tinytest.add 'db.query [Wrong cypher] [SYNC] (You will see errors at server console)', (test) ->
+#   test.expect_fail()
+#   test.throws db.query("MATCh (n:) RETRN n"), 
+#     """
+# "MATCh (n:) RETRN n"
+#           ^  
+#   { code: 'Neo.ClientError.Statement.InvalidSyntax' }  
+#   Invalid input ')': expected whitespace or a label name (line 1, column 10 (offset: 9))
+#     """
+
 Tinytest.add 'db.query [SYNC]', (test) ->
   cursor = db.query "CREATE (n:QueryTest {data}) RETURN n", data: foo: 'bar'
 
@@ -113,6 +129,14 @@ Tinytest.add 'db.query [SYNC]', (test) ->
 @description Test standart async query
 query: (cypher, opts = {}, callback) ->
 ###
+Tinytest.add 'db.query [Wrong cypher] [ASYNC] (You will see errors at server console)', (test) ->
+  fut = new Future()
+  db.query "MATCh (n:) RETRN n", (error, data) -> fut.return [error, data]
+  res = fut.wait()
+  test.isTrue _.isString res[0]
+  test.isTrue _.isEmpty res[1].fetch()
+
+
 Tinytest.add 'db.query [ASYNC]', (test) ->
   fut = new Future()
   db.query "CREATE (n:QueryTestAsync {data}) RETURN n", data: foo: 'bar', (error, cursor) -> fut.return cursor
@@ -141,3 +165,72 @@ Tinytest.add 'db.query [ASYNC]', (test) ->
   db.query "MATCH (n:QueryTestAsync) RETURN n", (error, cursor) -> fut.return cursor.fetch()
   row = fut.wait()
   test.equal row.length, 0, "[MATCH] [fetch] [after DELETE] Returns empty array"
+
+###
+@test 
+@description Test queryAsync
+queryAsync: (cypher, opts, callback) ->
+###
+Tinytest.addAsync 'db.queryAsync [with callback]', (test, completed) ->
+  test.isTrue _.isFunction(db.queryAsync), "[queryAsync] Exists on DB object"
+  db.queryAsync "CREATE (n:QueryAsyncTest {data}) RETURN n", {data: queryAsync: 'queryAsync'}, (error, cursor) ->
+    test.isNull error, "No error"
+    nodes = cursor.fetch()
+    test.equal nodes.length, 1, "Only one node is created"
+    test.isTrue _.has nodes[0], 'n'
+    __nodeCRC__ test, nodes[0].n, ['QueryAsyncTest'], {queryAsync: 'queryAsync'}
+
+    db.queryAsync "MATCH (n:QueryAsyncTest) DELETE n", (error, cursor) ->
+      test.isNull error, "No error"
+      nodes = cursor.fetch()
+      test.equal nodes.length, 0, "No nodes is returned on DELETE"
+      completed()
+
+###
+@test 
+@description Test queryOne
+queryOne: (cypher, opts) ->
+###
+Tinytest.add 'db.queryOne', (test) ->
+  test.isTrue _.isFunction(db.queryOne), "[queryOne] Exists on DB object"
+  node = db.queryOne "CREATE (n:QueryOneTest {data}) RETURN n", data: test: true
+  test.isTrue _.has node, 'n'
+  __nodeCRC__ test, node.n, ['QueryOneTest'], {test: true}
+  db.queryAsync "MATCH (n:QueryOneTest) DELETE n"
+
+
+###
+@test 
+@description Test queryAsync
+queryAsync: (cypher, opts, callback) ->
+###
+Tinytest.addAsync 'db.queryAsync [no callback]', (test, completed) ->
+  test.isTrue _.isFunction(db.queryAsync), "[queryAsync] Exists on DB object"
+  db.queryAsync "CREATE (n:QueryAsyncNoCBTest {data}) RETURN n", {data: queryAsyncNoCB: 'queryAsyncNoCB'}
+
+  listen = (cb) -> Meteor.setTimeout cb, 2
+  getNewNode = ->
+    listen ->
+      nodes = db.query("MATCH (n:QueryAsyncNoCBTest) RETURN n").fetch()
+      node = nodes[0]
+      if not _.isEmpty(node) and _.has node, 'n'
+        test.equal nodes.length, 1, "Only one node is created"
+        db.queryAsync "MATCH (n:QueryAsyncNoCBTest) DELETE n"
+        removeNode()
+      else
+        getNewNode()
+
+  removeNode = ->
+    listen ->
+      node = db.queryOne "MATCH (n:QueryAsyncNoCBTest) RETURN n"
+      unless node
+        test.isUndefined node
+        completed()
+      else
+        removeNode()
+  getNewNode()
+
+
+
+
+
