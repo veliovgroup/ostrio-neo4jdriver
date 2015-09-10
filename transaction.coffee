@@ -2,7 +2,7 @@
 @locus Server
 @summary Implementation of Transactional Cypher HTTP endpoint
          Event-driven and chainable
-         Have to be finished by calling `.commit()` method
+         Have to be finished by calling `.commit()` or `.rollback()` method
 @class Neo4jTransaction
 @url http://neo4j.com/docs/2.2.5/rest-api-transactional.html
 ###
