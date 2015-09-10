@@ -4,6 +4,7 @@
  - This package uses [batch operations](http://neo4j.com/docs/2.2.5/rest-api-batch-ops.html) to perform queries, than means if you sending multiple queries to Neo4j in current event loop, all of them will be sent in closest (next) event loop inside of the one batch
  - This package was tested and works like a charm with [GrapheneDB]()
  - Please see demo hosted on [Meteor (Powered by GrapheneDB)]() and on [Heroku]()
+ - To find more about how to use Cypher read [Neo4j cheat sheet](http://neo4j.com/docs/2.2.5/cypher-refcard/)
 
 See also [Isomorphic Reactive Driver](https://github.com/VeliovGroup/ostrio-Neo4jreactivity).
 
