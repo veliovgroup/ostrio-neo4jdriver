@@ -31,12 +31,12 @@ class Neo4jTransaction
 
     @on 'ready', (cb) => cb null, true
 
-    statement = @__prepare(settings, opts).request if settings
-    statement = [] unless statement
+    statement = @__prepare(settings, opts) if settings
+    statement = request: [] unless statement
 
     Meteor.wrapAsync((cb) =>
-      @_db.__call @_db.__service.transaction.endpoint, data: statements: statement, 'POST', (error, response) =>
-        @__proceedResults error, response, 
+      @_db.__call @_db.__service.transaction.endpoint, data: statements: statement.request, 'POST', (error, response) =>
+        @__proceedResults error, response, statement.reactive
         @_commitURL = response.data.commit
         @_execURL = response.data.commit.replace '/commit', ''
         @_expiresAt = response.data.transaction.expires
@@ -46,7 +46,6 @@ class Neo4jTransaction
 
   __prepare: (settings, opts = {}) ->
     {opts, cypher, resultDataContents, reactive} = @_db.__parseSettings settings, opts
-    console.log {opts, cypher, resultDataContents, reactive}
 
     fill = (cs) ->
       statement: cs
@@ -67,7 +66,11 @@ class Neo4jTransaction
     return
 
   __commit: (statement, callback) ->
-    data = data: statements: statement.request if statement
+    if statement
+      data = data: statements: statement.request 
+    else
+      data = data: statements: []
+
     @_db.__call @_commitURL, data, 'POST', (error, response) => 
       @__proceedResults error, response, statement.reactive if statement
       callback null, @_results
@@ -95,7 +98,7 @@ class Neo4jTransaction
 
   ###
   @locus Server
-  @summary Reset transaction timeout of an open Neo4j Transaction
+  @summary Rollback an open transaction
   @name rollback
   @class Neo4jTransaction
   @url http://neo4j.com/docs/2.2.5/rest-api-transactional.html#rest-api-rollback-an-open-transaction
@@ -155,6 +158,10 @@ class Neo4jTransaction
   @returns {[Object]} - Array of Neo4jCursor(s)
   ###
   commit: (settings, opts = {}, callback) ->
+    if _.isFunction opts
+      callback = opts
+      opts = {}
+
     statement = @__prepare(settings, opts) if settings
 
     unless callback

@@ -6,8 +6,8 @@
 @class Neo4jData
 ###
 class Neo4jData
-  constructor: (@_node, @_isReactive = false) -> @__refresh()
-  __refresh: -> @_expire = (+new Date) + 2000
+  constructor: (@_node, @_isReactive = false, @_expiration = 0) -> @__refresh()
+  __refresh: -> @_expire = (+new Date) + @_expiration * 1000
 
   @define 'node',
     get: -> 
@@ -17,7 +17,9 @@ class Neo4jData
       else
         @_node
     set: (newVal) -> 
-      @_node = newVal unless EJSON.equals @_node, newVal
+      unless EJSON.equals @_node, newVal
+        console.warn "[@define 'node'] [set] UPDATED!"
+        @_node = newVal 
 
   ###
   @locus Server
@@ -39,9 +41,5 @@ class Neo4jData
   @returns {Object | [Object] | [String]} - Depends from cypher query
   ###
   update: ->
-    if @_node?._service
-      fut = new Future()
-      @_node._service.self.get 'GET', {}, (error, data) => fut.return @
-      return fut.wait()
-    else
-      return @
+    @node = @_node._service.self.__getAndProceed '__parseNode' if @_node?._service
+    return @

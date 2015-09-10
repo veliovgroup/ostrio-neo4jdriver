@@ -121,26 +121,26 @@ class Neo4jDB
         bound => callback error, if noTransform then response else @__transformData _.clone(response), reactive
 
   __connect: -> 
-    @__call @root, {}, 'GET', (error, response) =>
-      if response?.statusCode
-        switch response.statusCode
-          when 200
-            if response.data.password_change_required
-              throw new Error "To connect to Neo4j - password change is required, please proceed to #{response.data.password_change}"
-            else
-              for key, endpoint of response.data
-                if _.isString endpoint
-                  if !!~endpoint.indexOf '://'
-                    @__service[key] = new Neo4jEndpoint key, endpoint, @
-                  else
-                    @__service[key] = get: -> endpoint
-                  console.success "v#{endpoint}" if key is "neo4j_version"
-              @emit 'ready'
-              console.success "Successfully connected to Neo4j on #{@url}"
+    response = @__call @root
+    if response?.statusCode
+      switch response.statusCode
+        when 200
+          if response.data.password_change_required
+            throw new Error "To connect to Neo4j - password change is required, please proceed to #{response.data.password_change}"
           else
-            throw new Error JSON.stringify response
-      else
-        throw new Error "Error with connection to Neo4j"
+            for key, endpoint of response.data
+              if _.isString endpoint
+                if !!~endpoint.indexOf '://'
+                  @__service[key] = new Neo4jEndpoint key, endpoint, @
+                else
+                  @__service[key] = get: -> endpoint
+                console.success "v#{endpoint}" if key is "neo4j_version"
+            @emit 'ready'
+            console.success "Successfully connected to Neo4j on #{@url}"
+        else
+          throw new Error JSON.stringify response
+    else
+      throw new Error "Error with connection to Neo4j"
 
   __call: (url, options = {}, method = 'GET', callback) ->
     check url, String
@@ -161,6 +161,7 @@ class Neo4jDB
     options.follow_max = 10
     _url = URL.parse(url)
     options.proxy = "#{_url.protocol}//#{@username}:#{@password}@#{_url.host}" if @https
+    options.data ?= {}
 
     request = (method, url, body, options, callback) =>
       needle.request method, url, body, options, (error, response)->
@@ -177,8 +178,8 @@ class Neo4jDB
       unless callback
         return __wait (fut) ->
           request method, url, options.data, options, (error, response) ->
-          fut.throw error if error
-          fut.return response
+            fut.throw error if error
+            fut.return response
       else
         return request method, url, options.data, options, callback
     catch error
@@ -187,22 +188,25 @@ class Neo4jDB
       console.trace()
 
   __parseNode: (currentNode) ->
-    node = _service: {}
-    for key, endpoint of currentNode
-      if _.isString(endpoint) and !!~endpoint.indexOf '://'
-        node._service[key] = new Neo4jEndpoint key, endpoint, @
+    if currentNode?.metadata or currentNode?.data
+      node = _service: {}
+      for key, endpoint of currentNode
+        if _.isString(endpoint) and !!~endpoint.indexOf '://'
+          node._service[key] = new Neo4jEndpoint key, endpoint, @
 
-    nodeData = _.extend currentNode.data, currentNode.metadata
-    nodeData.metadata = currentNode.metadata
+      nodeData = _.extend currentNode.data, currentNode.metadata
+      nodeData.metadata = currentNode.metadata
 
-    if currentNode?['start']
-      paths = currentNode.start.split '/'
-      nodeData.start = paths[paths.length - 1]
-    if currentNode?['end']
-      paths = currentNode.end.split '/'
-      nodeData.end = paths[paths.length - 1]
+      if currentNode?['start']
+        paths = currentNode.start.split '/'
+        nodeData.start = paths[paths.length - 1]
+      if currentNode?['end']
+        paths = currentNode.end.split '/'
+        nodeData.end = paths[paths.length - 1]
 
-    return _.extend node, nodeData
+      return _.extend node, nodeData
+    else
+      return currentNode
 
   __parseRow: (result, columns, reactive) ->
     node = {}
@@ -339,15 +343,8 @@ class Neo4jDB
 
     return @__getCursor task, callback, reactive
 
-  cypher: (cypher, opts = {}, callback, reactive) ->
-    if _.isFunction opts
-      reactive = callback
-      callback = opts
-      opts = {}
-    check cypher, String
-    check opts, Object
-    check callback, Match.Optional Function
-    check reactive, Match.Optional Boolean
+  cypher: (settings, opts = {}, callback) ->
+    {cypher, opts, callback, reactive} = @__parseSettings settings, opts, callback
 
     task = 
       method: 'POST'
