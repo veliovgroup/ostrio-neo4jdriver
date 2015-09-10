@@ -497,7 +497,7 @@ class Neo4jDB
       for id in ids
         @once id, (error, response, id) =>
           --qty
-          response = if plain then response else @__transformData _.clone(response), reactive
+          response = if plain then response else new Neo4jCursor @__transformData _.clone(response), reactive
           response._batchId = id
           results.push response
           cb null, results if qty is 0
