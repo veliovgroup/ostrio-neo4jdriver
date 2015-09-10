@@ -19,7 +19,6 @@ class Neo4jData
         @_node
     set: (newVal) -> 
       unless EJSON.equals @_node, newVal
-        console.warn "[@define 'node'] [set] UPDATED!"
         @_node = newVal 
 
   ###
