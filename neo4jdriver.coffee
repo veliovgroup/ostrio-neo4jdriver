@@ -216,8 +216,13 @@ class Neo4jDB
     for column, index in columns
 
       if result?.graph
+        node.relationships = []
+        node.nodes = []
         for key, value of result.graph
-          node[key] = value
+          if _.isArray(value) and value.length > 0
+            for n in value
+              node.nodes.push new Neo4jData(@__parseNode(n), reactive) if key is 'nodes'
+              node.relationships.push new Neo4jData(@__parseNode(n), reactive) if key is 'relationships'
 
       if result?.row
         row = 
@@ -234,13 +239,14 @@ class Neo4jDB
           node: result
           isRest: true
 
-      if _.isObject row.node[index]
-        if row.isRest
-          node[column] = new Neo4jData @__parseNode(row.node[index]), reactive
+      if row.node?[index]
+        if _.isObject row.node[index]
+          if row.isRest
+            node[column] = new Neo4jData @__parseNode(row.node[index]), reactive
+          else
+            node[column] = new Neo4jData row.node[index], false
         else
           node[column] = new Neo4jData row.node[index], false
-      else
-        node[column] = new Neo4jData row.node[index], false
     return node
 
   __parseResponse: (data, columns, reactive) ->

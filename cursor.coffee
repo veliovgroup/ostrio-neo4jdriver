@@ -82,6 +82,17 @@ class Neo4jCursor
       data = {}
       if _.isObject row
         for nodeAlias, node of row
+
+          if nodeAlias is 'nodes'
+            node = _.clone node
+            for n, i in node
+              node[i] = n.get() if n?.get?()
+
+          if nodeAlias is 'relationships'
+            node = _.clone node
+            for r, i in node
+              node[i] = r.get() if r?.get?()
+
           if node?.get?()
             data[nodeAlias] = node.get()
           else
