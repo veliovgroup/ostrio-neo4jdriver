@@ -16,7 +16,7 @@ meteor add ostrio:neo4jdriver
 
 API
 =======
-#### `Neo4jDB([url], [auth])`
+##### `Neo4jDB([url], [auth])`
  - `url` {*String*} - Absolute URL to Neo4j server, support both `http://` and `https://` protocols
  - `auth` {*Object*} - User credentials
  - `auth.password` {*String*}
@@ -29,7 +29,7 @@ db = new Neo4jDB 'http://localhost:7474'
   password: '1234'
 ```
 
-#### `db.query(cypher, [opts], [callback])`
+##### `db.query(cypher, [opts], [callback])`
  - `cypher` {*String*} - Cypher query string
  - `opts` {*Object*} - JSON-able map of cypher query parameters
  - `callback` {*Function*} - Callback with `error` and `result` arguments
@@ -38,8 +38,53 @@ If `callback` is passed, the method runs asynchronously, instead of synchronousl
 db.query "CREATE (n {userData}) RETURN n", userData: username: 'John Black'
 ```
 
+Usage
+=======
+```coffeescript
+db = new Neo4jDB 'http://localhost:7474', {username: 'neo4j', password: '1234'}
+cursor = db.query 'CREATE (n:City {props}) RETURN n', props: title: 'Ottawa', lat: 45.416667, long: -75.683333 # Returns Neo4jCursor
+console.log cursor.fetch()
+# Returns array of nodes:
+# [{
+#   n: {
+#     long: -75.683333,
+#     lat: 45.416667,
+#     title: "Ottawa",
+#     id: 8421,
+#     labels": ["City"],
+#     metadata: {
+#       id: 8421,
+#        labels": ["City"]
+#     }
+#   }
+# }]
+
+# Also you can iterate through results:
+cursor.forEach (node) ->
+  console.log node
+  # Returns node as Object:
+  # {
+  #   n: {
+  #     long: -75.683333,
+  #     lat: 45.416667,
+  #     title: "Ottawa",
+  #     id: 8421,
+  #     labels": ["City"],
+  #     metadata: {
+  #       id: 8421,
+  #        labels": ["City"]
+  #     }
+  #   }
+  # }
+```
+
 -----
 #### Testing & Dev usage
+##### Testing
+ - Clone this repository
+ - Go to package directory
+ - Run in console `meteor test-packages ./`
+
 ##### Local usage
 
  - Download (or clone) to local dir
