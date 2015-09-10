@@ -13,20 +13,9 @@ class Neo4jTransaction
     @_ready = false
     @_results = []
 
-    @on 'commit', (statement, callback) =>
-      if @_ready then @__commit statement, callback else @once 'ready', => @__commit statement, callback
-      return
-
-    @on 'execute', (statement, fut) =>
-      if @_ready then @__execute statement, fut else @once 'ready', => @__execute statement, fut
-      return
-
-    @on 'resetTimeout', (fut) =>
-      if @_ready then @__resetTimeout fut else @once 'ready', => @__resetTimeout fut
-      return
-
-    @on 'rollback', (fut) =>
-      if @_ready then @__rollback fut else @once 'ready', => @__rollback fut
+    @on 'transaction', =>
+      cb = arguments[arguments.length - 1]
+      if @_ready then cb.apply @, arguments else @once 'ready', => cb.apply @, arguments
       return
 
     @on 'ready', (cb) => cb null, true
@@ -59,34 +48,20 @@ class Neo4jTransaction
       statements.request.push fill cypher
     return statements
 
-  __execute: (statement, fut) ->
-    @_db.__call @_execURL, data: statements: statement.request, 'POST', (error, response) =>
-      @__proceedResults error, response, statement.reactive
-      fut.return @
-    return
-
   __commit: (statement, callback) ->
     if statement
-      data = data: statements: statement.request 
+      data = data: statements: statement.request
+      reactive = statement.reactive
     else
       data = data: statements: []
-
+      reactive = false
+      
     @_db.__call @_commitURL, data, 'POST', (error, response) => 
       @__proceedResults error, response, statement.reactive if statement
-      callback null, @_results
-      return
-
-  __resetTimeout: (fut) ->
-    @_db.__call @_execURL, data: statements: [], 'POST', (error, response) => 
-      @_expiresAt = response.data.transaction.expires
-      fut.return @
-    return
-
-  __rollback: (fut) ->
-    @_db.__call @_execURL, null, 'DELETE', => 
-      @_results = []
-      fut.return undefined
-    return
+      if callback?.return
+        callback.return @_results
+      else
+        callback error, @_results
 
   __proceedResults: (error, response, reactive = false) ->
     unless error
@@ -105,9 +80,11 @@ class Neo4jTransaction
   @returns {undefined}
   ###
   rollback: ->
-    fut = new Future()
-    @emit 'rollback', fut
-    return fut.wait()
+    __wait (fut) =>
+      @emit 'transaction', fut, (fut) ->
+        @_db.__call @_execURL, null, 'DELETE', => 
+          @_results = []
+          fut.return undefined
 
   ###
   @locus Server
@@ -118,9 +95,11 @@ class Neo4jTransaction
   @returns Neo4jTransaction
   ###
   resetTimeout: ->
-    fut = new Future()
-    @emit 'resetTimeout', fut
-    return fut.wait()
+    __wait (fut) =>
+      @emit 'transaction', fut, (fut) ->
+        @_db.__call @_execURL, data: statements: [], 'POST', (error, response) => 
+          @_expiresAt = response.data.transaction.expires
+          fut.return @
 
   ###
   @locus Server
@@ -137,9 +116,11 @@ class Neo4jTransaction
   @returns Neo4jTransaction
   ###
   execute: (settings, opts = {}) ->
-    fut = new Future()
-    @emit 'execute', @__prepare(settings, opts), fut
-    return fut.wait()
+    __wait (fut) =>
+      @emit 'transaction', @__prepare(settings, opts), fut, (statement, fut) ->
+        @_db.__call @_execURL, data: statements: statement.request, 'POST', (error, response) =>
+          @__proceedResults error, response, statement.reactive
+          fut.return @
 
   ###
   @locus Server
@@ -165,11 +146,9 @@ class Neo4jTransaction
     statement = @__prepare(settings, opts) if settings
 
     unless callback
-      return Meteor.wrapAsync((cb) =>
-        @emit 'commit', statement, cb
-      )()
+      __wait (fut) => @emit 'transaction', statement, fut, @__commit
     else
-      @emit 'commit', statement, callback
+      @emit 'transaction', statement, callback, @__commit
       return
 
   ###
