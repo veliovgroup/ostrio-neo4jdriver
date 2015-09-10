@@ -29,7 +29,7 @@ class Neo4jDB
     @__service = {}
     @_ready = false
 
-    @defaultHeaders = Accept: "application/json", 'X-Stream': 'true'
+    @defaultHeaders = Accept: "application/json; charset=UTF-8", 'X-Stream': 'true', 'Content-Type': 'application/json'
     @defaultHeaders = _.extend @defaultHeaders, opts.headers if opts?.headers
     @defaultHeaders.Authorization = "Basic " + (new Buffer("#{opts.username}:#{opts.password}").toString('base64')) if opts.password and opts.username
 
@@ -40,7 +40,7 @@ class Neo4jDB
     _eb = =>
       @emit 'batch', tasks
       tasks = []
-      
+
     @on 'query', (task) => 
       task.to = task.to.replace @root, ''
       task.id ?= Math.floor(Math.random()*(999999999-1+1)+1)
@@ -57,9 +57,7 @@ class Neo4jDB
     @__call @__service.batch.endpoint
     , 
       data: tasks
-      headers:
-        Accept: 'application/json; charset=UTF-8'
-        'Content-Type': 'application/json'
+      headers: @defaultHeaders
     ,
       'POST'
     ,
