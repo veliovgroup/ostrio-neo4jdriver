@@ -150,6 +150,7 @@ Tinytest.add 'db.cypher [BASICS]', (test) -> __BasicsTest__ test, 'cypher'
 @description Test standard query, Synchronous, with replacements
 query: (cypher, opts = {}) ->
 ###
+Tinytest.add 'db.query [SYNC]', (test) -> __SyncTest__ test, 'query'
 
 ###
 Any idea how to test this one?
@@ -165,12 +166,11 @@ It throws an exception inside driver
 #   Invalid input ')': expected whitespace or a label name (line 1, column 10 (offset: 9))
 #     """
 
-Tinytest.add 'db.query [SYNC]', (test) -> __SyncTest__ test, 'query'
 
 ###
 @test 
-@description Test standart async query
-query: (cypher, opts = {}, callback) ->
+@description Passing wrong Cypher query
+query: (cypher, callback) ->
 ###
 Tinytest.addAsync 'db.query [Wrong cypher] [ASYNC] (You will see errors at server console)', (test, completed) ->
   db.query "MATCh (n:) RETRN n", (error, data) ->
@@ -178,7 +178,11 @@ Tinytest.addAsync 'db.query [Wrong cypher] [ASYNC] (You will see errors at serve
     test.isTrue _.isEmpty data.fetch()
     completed()
 
-
+###
+@test 
+@description Test standard async query
+query: (cypher, opts = {}, callback) ->
+###
 Tinytest.add 'db.query [ASYNC]', (test) ->
   fut = new Future()
   db.query "CREATE (n:QueryTestAsync {data}) RETURN n", data: foo: 'bar', (error, cursor) -> fut.return cursor
@@ -311,7 +315,11 @@ cypher: (settings.reactive: true, opts = {}) ->
 ###
 Tinytest.add 'db.cypher [SYNC] [REACTIVE NODES]', (test) -> __SyncReactiveTest__ test, 'cypher'
 
-
+###
+@test 
+@description Check `.transaction` method returns Neo4jTransaction instance, and it has all required methods
+db.transaction()
+###
 Tinytest.add 'db.transaction [BASICS / open / rollback]', (test) ->
   test.isTrue _.isFunction(db.transaction), "[transaction] exists on db object"
   t = db.transaction()
@@ -339,6 +347,11 @@ Tinytest.add 'db.transaction [resetTimeout] (waits for 1 sec to see difference)'
   test.isFalse new_ea is ea
   t.rollback()
 
+###
+@test 
+@description Check Neo4jTransaction `.current()` and  `.rollback()` methods 
+db.transaction().current().rollback()
+###
 Tinytest.add 'db.transaction [current / rollback]', (test) ->
   t = db.transaction "CREATE (n:TransactionsTesting {data})", data: transaction: true
   current = t.current()
@@ -347,6 +360,11 @@ Tinytest.add 'db.transaction [current / rollback]', (test) ->
   t.rollback()
   test.equal db.queryOne("MATCH (n:TransactionsTesting) RETURN n"), undefined
 
+###
+@test 
+@description Check Neo4jTransaction `.execute()` and  `.rollback()` methods 
+db.transaction().execute().rollback()
+###
 Tinytest.add 'db.transaction [execute / rollback]', (test) ->
   t = db.transaction "CREATE (n:TransactionsTesting {data}) RETURN n", data: transaction: true
   current = t.current()
@@ -362,6 +380,11 @@ Tinytest.add 'db.transaction [execute / rollback]', (test) ->
   test.equal db.queryOne("MATCH (n:TransactionsTesting) RETURN n"), undefined
   test.equal db.queryOne("MATCH (n:TransactionsTesting2) RETURN n"), undefined
 
+###
+@test 
+@description Check Neo4jTransaction `.execute()` and  `.commit()` methods 
+db.transaction().execute().commit()
+###
 Tinytest.add 'db.transaction [execute / commit]', (test) ->
   t = db.transaction "CREATE (n:TransactionsTesting {data}) RETURN n", data: transaction: true
   current = t.current()
@@ -381,7 +404,12 @@ Tinytest.add 'db.transaction [execute / commit]', (test) ->
   test.equal db.queryOne("MATCH (n:TransactionsTesting) RETURN n"), undefined
   test.equal db.queryOne("MATCH (n:TransactionsTesting2) RETURN n"), undefined
 
-Tinytest.add 'db.transaction [execute multiple / rollback]', (test) ->
+###
+@test 
+@description Check Neo4jTransaction `.execute()`, `.current()` and  `.rollback()` methods 
+db.transaction().execute(['query', 'query']).current().rollback()
+###
+Tinytest.add 'db.transaction [execute multiple / current / rollback]', (test) ->
   t = db.transaction()
 
   t.execute ["CREATE (n:TransactionsTesting {data1}) RETURN n", "CREATE (n:TransactionsTesting2 {data2}) RETURN n"]
@@ -400,6 +428,11 @@ Tinytest.add 'db.transaction [execute multiple / rollback]', (test) ->
   test.equal db.queryOne("MATCH (n:TransactionsTesting) RETURN n"), undefined
   test.equal db.queryOne("MATCH (n:TransactionsTesting2) RETURN n"), undefined
 
+###
+@test 
+@description Check Neo4jTransaction `.execute()` and  `.commit()` methods 
+db.transaction().execute(['query', 'query']).commit()
+###
 Tinytest.add 'db.transaction [execute multiple / commit]', (test) ->
   db.transaction().execute(
     ["CREATE (n:TransactionsTesting {data1})", "CREATE (n:TransactionsTesting2 {data2})"]
@@ -418,6 +451,12 @@ Tinytest.add 'db.transaction [execute multiple / commit]', (test) ->
   test.equal db.queryOne("MATCH (n:TransactionsTesting) RETURN n"), undefined
   test.equal db.queryOne("MATCH (n:TransactionsTesting2) RETURN n"), undefined
 
+
+###
+@test 
+@description Check Neo4jTransaction `.last()` method
+db.transaction().execute(['query', 'query']).last().rollback()
+###
 Tinytest.add 'db.transaction [last]', (test) ->
   t = db.transaction().execute(
     ["CREATE (n:TransactionsTesting {data1})", "CREATE (n:TransactionsTesting2 {data2}) RETURN n"]
@@ -428,6 +467,261 @@ Tinytest.add 'db.transaction [last]', (test) ->
 
   __nodeCRC__ test, t.last().fetch()[0].n, ['TransactionsTesting2'], {transaction2: 'true'}
   t.rollback()
+
+###
+@test 
+@description Check Neo4jTransaction `.execute()` and  `.commit()` methods 
+db.transaction().execute().commit(cb:function())
+###
+Tinytest.addAsync 'db.transaction [commit] [ASYNC]', (test, completed) ->
+  db.transaction().commit
+    query: "CREATE (n:TransactionsCommitAsync {foo: {data}}) RETURN n"
+    params: data: 'bar'
+    cb: (err, res)->
+      bound ->
+        node = res[0].fetch()[0]
+        __nodeCRC__ test, node.n, ['TransactionsCommitAsync'], {foo: 'bar'}
+        db.queryAsync "MATCH (n:TransactionsCommitAsync) DELETE n"
+        completed()
+
+###
+@test 
+@description Check Neo4jTransaction `.execute()` and  `.commit()` methods 
+db.transaction().execute().commit(function)
+###
+Tinytest.addAsync 'db.transaction [commit] [ASYNC] 2', (test, completed) ->
+  db.transaction("CREATE (n:TransactionsCommitAsync2 {foo: {data}}) RETURN n", {data: 'bar'}).commit (err, res)->
+    bound ->
+      node = res[0].fetch()[0]
+      __nodeCRC__ test, node.n, ['TransactionsCommitAsync2'], {foo: 'bar'}
+      db.queryAsync "MATCH (n:TransactionsCommitAsync2) DELETE n"
+      completed()
+
+###
+@test 
+@description Check Neo4jTransaction `.commit()` method within reactive nodes 
+db.transaction()().commit()
+###
+Tinytest.addAsync 'db.transaction [commit] [ASYNC] [REACTIVE NODES]', (test, completed) ->
+  db.transaction().commit
+    query: "CREATE (n:TransactionsCommitReactiveAsync {foo: {data}}) RETURN n"
+    params: data: 'TCRA'
+    reactive: true
+    cb: (err, res)->
+      bound ->
+        node = res[0].fetch()[0]
+        __nodeCRC__ test, node.n, ['TransactionsCommitReactiveAsync'], {foo: 'TCRA'}
+
+        db.querySync "MATCH n WHERE id(n) = {id} SET n.newProp = 'rrrreactive!'", {id: node.n.id}
+
+        node = res[0].fetch()[0]
+        __nodeCRC__ test, node.n, ["TransactionsCommitReactiveAsync"], {foo: "TCRA", newProp: 'rrrreactive!'}
+
+        db.queryAsync "MATCH (n:TransactionsCommitReactiveAsync) DELETE n"
+        completed()
+
+###
+@test 
+@description Check Neo4jTransaction check empty transaction
+db.transaction().rollback()
+###
+Tinytest.add 'db.transaction [rollback] [EMPTY]', (test) ->
+  test.equal db.transaction().rollback(), undefined
+
+###
+@test 
+@description Check Neo4jTransaction check empty transaction
+db.transaction().commit()
+###
+Tinytest.add 'db.transaction [commit] [EMPTY]', (test) ->
+  test.equal db.transaction().commit(), []
+
+###
+@test 
+@description Check next tick batch
+db.queryAsync(query)
+###
+Tinytest.addAsync 'Sending multiple async queries inside one Batch on next tick', (test, completed) ->
+  conf = [
+    'a'
+    'b'
+    'c'
+    'd'
+    'e'
+    'f'
+    'g'
+    'h'
+  ]
+
+  i = 0
+  f = (err, res) ->
+    rows = res.fetch()
+    for nodeLink in conf
+      if _.has rows[0], nodeLink
+        __nodeCRC__ test, rows[0][nodeLink], ['TestTickBatch', nodeLink], {foo: nodeLink}
+
+    if ++i is conf.length
+      db.queryAsync "MATCH (n:TestTickBatch) DELETE n", ->
+        test.equal db.queryOne("MATCH (n:TestTickBatch) RETURN n"), undefined
+        completed()
+
+  for name in conf
+    db.queryAsync "CREATE (#{name}:TestTickBatch:#{name} {data}) RETURN #{name}", {data: foo: name}, f
+
+###
+@test 
+@description Check graph
+db.graph()
+###
+Tinytest.addAsync 'db.graph', (test, completed) ->
+  db.querySync "CREATE (a:FirstTest)-[r:KNOWS]->(b:SecondTest), (a:FirstTest)-[r2:WorkWith]->(c:ThirdTest), (c:ThirdTest)-[r3:KNOWS]->(b:SecondTest)"
+  graph = db.graph "MATCH ()-[r]-() RETURN r"
+  test.instanceOf graph, Neo4jCursor
+  i = 0
+  graph.forEach (n) ->
+    i++
+    test.isTrue _.has n, 'relationships'
+    test.isTrue _.has n, 'nodes'
+    test.equal n.nodes.length, 2
+    test.equal n.relationships.length, 1
+    if i is graph.length
+      db.querySync "MATCH (a:FirstTest)-[r:KNOWS]->(b:SecondTest), (a:FirstTest)-[r2:WorkWith]->(c:ThirdTest), (c:ThirdTest)-[r3:KNOWS]->(b:SecondTest) DELETE r, r2, r3"
+      db.queryAsync "MATCH (a:FirstTest), (b:SecondTest), (c:ThirdTest) DELETE a, b, c"
+      completed()
+
+
+###
+@test 
+@description Check batch
+db.batch(tasks)
+###
+Tinytest.add 'db.batch [With custom ID]', (test) ->
+  batch = db.batch [
+      method: "POST"
+      to: db.__service.cypher.endpoint
+      body: 
+        query: "CREATE (n:BatchTest {data})"
+        params: data: BatchTest: true
+    ,
+      method: "POST"
+      to: db.__service.cypher.endpoint
+      body: query: "MATCH (n:BatchTest) RETURN n"
+      id: 999
+    ,
+      method: "POST"
+      to: db.__service.cypher.endpoint
+      body: query: "MATCH (n:BatchTest) DELETE n"]
+
+  test.equal batch.length, 3
+  for res in batch
+    test.isTrue _.isFunction res.fetch
+    test.isTrue _.has res, '_batchId'
+    test.isTrue _.has res, 'length'
+    if res._batchId is 999
+      __nodeCRC__ test, res.fetch()[0].n, ['BatchTest'], {BatchTest: true}
+
+###
+@test 
+@description Check batch ASYNC
+db.batch(tasks, callback)
+###
+Tinytest.addAsync 'db.batch [With custom ID] [ASYNC]', (test, completed) ->
+  db.batch [
+      method: "POST"
+      to: db.__service.cypher.endpoint
+      body: 
+        query: "CREATE (n:BatchTestAsync {data})"
+        params: data: BatchTestAsync: true
+    ,
+      method: "POST"
+      to: db.__service.cypher.endpoint
+      body: query: "MATCH (n:BatchTestAsync) RETURN n"
+      id: 999
+    ,
+      method: "POST"
+      to: db.__service.cypher.endpoint
+      body: query: "MATCH (n:BatchTestAsync) DELETE n"]
+  , 
+    (error, batch) ->
+      bound ->
+        test.equal batch.length, 3
+        for res in batch
+          test.isTrue _.isFunction res.fetch
+          test.isTrue _.has res, '_batchId'
+          test.isTrue _.has res, 'length'
+          if res._batchId is 999
+            __nodeCRC__ test, res.fetch()[0].n, ['BatchTestAsync'], {BatchTestAsync: true}
+
+        completed()
+
+###
+@test 
+@description Check batch ASYNC
+db.batch(tasks, undefined, false, true)
+###
+Tinytest.add 'db.batch [With custom ID] [no data transform (plain)]', (test) ->
+  batch = db.batch [
+      method: "POST"
+      to: db.__service.cypher.endpoint
+      body: 
+        query: "CREATE (n:BatchTestPlain {data})"
+        params: data: BatchTestPlain: true
+    ,
+      method: "POST"
+      to: db.__service.cypher.endpoint
+      body: query: "MATCH (n:BatchTestPlain) RETURN n"
+      id: 999
+    ,
+      method: "POST"
+      to: db.__service.cypher.endpoint
+      body: query: "MATCH (n:BatchTestPlain) DELETE n"], undefined, false, true
+
+  test.equal batch.length, 3
+  for res in batch
+    test.isTrue _.has res, '_batchId'
+    test.isTrue _.has res, 'data'
+    test.isTrue _.has res, 'columns'
+    if res._batchId is 999
+      test.isTrue !!~res.data[0][0].metadata.labels.indexOf 'BatchTestPlain'
+      test.isTrue _.has res.data[0][0].data, 'BatchTestPlain'
+      test.equal res.data[0][0].data['BatchTestPlain'], true
+
+###
+@test 
+@description Check batch ASYNC REACTIVE
+db.batch(tasks, undefined, true)
+###
+Tinytest.add 'db.batch [With custom ID] [REACTIVE]', (test) ->
+  batch = db.batch [
+      method: "POST"
+      to: db.__service.cypher.endpoint
+      body: 
+        query: "CREATE (n:BatchTestReactive {data})"
+        params: data: BatchTestReactive: true
+    ,
+      method: "POST"
+      to: db.__service.cypher.endpoint
+      body: query: "MATCH (n:BatchTestReactive) RETURN n"
+      id: 999], undefined, true
+
+  test.equal batch.length, 2
+  for res in batch
+    test.isTrue _.isFunction res.fetch
+    test.isTrue _.has res, '_batchId'
+    test.isTrue _.has res, 'length'
+    if res._batchId is 999
+      node = res.fetch()[0]
+      __nodeCRC__ test, node.n, ['BatchTestReactive'], {BatchTestReactive: true}
+
+      db.querySync "MATCH n WHERE id(n) = {id} SET n.newProp = 'rrrreactive!'", {id: node.n.id}
+
+      node = res.fetch()[0]
+      __nodeCRC__ test, node.n, ["BatchTestReactive"], {BatchTestReactive: true, newProp: 'rrrreactive!'}
+
+      db.batch [
+        method: "POST"
+        to: db.__service.cypher.endpoint
+        body: query: "MATCH (n:BatchTestReactive) DELETE n"], -> return
 
 
 
