@@ -281,18 +281,23 @@ class Neo4jDB
       return @
 
   __parseSettings: (settings, opts, callback) ->
-    if _.isArray settings
-      cypher = settings
+    if _.isFunction settings
+      callback = settings
+      cypher   = ''
+      opts     = {}
+      settings = {}
+    else if _.isArray settings
+      cypher   = settings
       settings = {}
     else if _.isObject settings
       {cypher, query, opts, parameters, params, callback, cb, resultDataContents, reactive, reactiveNodes} = settings
     else if _.isString settings
-      cypher = settings
+      cypher   = settings
       settings = {}
     
     if _.isFunction opts
       callback = opts
-      opts = {}
+      opts     = {}
 
     opts     ?= {}
     cypher   ?= query

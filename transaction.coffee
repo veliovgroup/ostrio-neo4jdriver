@@ -33,8 +33,8 @@ class Neo4jTransaction
         @emit 'ready', cb
     )()
 
-  __prepare: (settings, opts = {}) ->
-    {opts, cypher, resultDataContents, reactive} = @_db.__parseSettings settings, opts
+  __prepare: (settings, opts = {}, callback, asObj = false) ->
+    {opts, cypher, resultDataContents, reactive, callback} = @_db.__parseSettings settings, opts, callback
 
     fill = (cs) ->
       statement: cs
@@ -46,7 +46,8 @@ class Neo4jTransaction
       statements.request.push fill cypherString for cypherString in cypher
     else if _.isString cypher
       statements.request.push fill cypher
-    return statements
+
+    return if asObj then {statements, callback} else statements
 
   __commit: (statement, callback) ->
     if statement
@@ -65,8 +66,7 @@ class Neo4jTransaction
 
   __proceedResults: (error, response, reactive = false) ->
     unless error
-      @_db.__cleanUpResponse response, (result) => 
-        @_results.push new Neo4jCursor @_db.__transformData result, reactive
+      @_db.__cleanUpResponse response, (result) => @_results.push new Neo4jCursor @_db.__transformData result, reactive
     else
       console.error error
       console.trace()
@@ -128,7 +128,7 @@ class Neo4jTransaction
   @name commit
   @class Neo4jTransaction
   @url http://neo4j.com/docs/2.2.5/rest-api-transactional.html#rest-api-commit-an-open-transaction
-  @param {Object | String | [String]} settings - Cypher query as String or Array of Cypher queries or object of settings
+  @param {Function | Object | String | [String]} settings - Cypher query as String or Array of Cypher queries or object of settings
   @param {String | [String]} settings.cypher - Cypher query(ies), alias: `settings.query`
   @param {Object} settings.opts - Map of cypher query(ies) parameters, aliases: `settings.parameters`, `settings.params`
   @param {[String]} settings.resultDataContents - Array of contents to return from Neo4j, like: 'REST', 'row', 'graph'. Default: `['REST']`
@@ -136,19 +136,15 @@ class Neo4jTransaction
   @param {Function} settings.callback - Callback function. If passed, the method runs asynchronously, instead of synchronously, and calls asyncCallback. Alias: `settings.cb`
   @param {Object} opts - Map of cypher query(ies) parameters
   @param {Function} callback - Callback function. If passed, the method runs asynchronously, instead of synchronously, and calls asyncCallback.
-  @returns {[Object]} - Array of Neo4jCursor(s)
+  @returns {[Object]} - Array of Neo4jCursor(s), or empty array if no nodes was returned during Transaction
   ###
   commit: (settings, opts = {}, callback) ->
-    if _.isFunction opts
-      callback = opts
-      opts = {}
-
-    statement = @__prepare(settings, opts) if settings
+    {statements, callback} = @__prepare settings, opts, callback, true if settings
 
     unless callback
-      __wait (fut) => @emit 'transaction', statement, fut, @__commit
+      __wait (fut) => @emit 'transaction', statements, fut, @__commit
     else
-      @emit 'transaction', statement, callback, @__commit
+      @emit 'transaction', statements, callback, @__commit
       return
 
   ###
@@ -156,7 +152,7 @@ class Neo4jTransaction
   @summary Get current data in Neo4j Transaction
   @name current
   @class Neo4jTransaction
-  @returns {[Object]} - Array of Neo4jCursor(s)
+  @returns {[Object]} - Array of Neo4jCursor(s), or empty array if no nodes was returned during Transaction
   ###
   current: () -> @_results
 
@@ -165,6 +161,6 @@ class Neo4jTransaction
   @summary Get last received data in Neo4j Transaction
   @name last
   @class Neo4jTransaction
-  @returns {Object | null} - Neo4jCursor(s)
+  @returns {Object | null} - Neo4jCursor(s), or null if no nodes was returned during Transaction
   ###
   last: () -> if @_results.length > 0 then @_results[@_results.length - 1] else null
