@@ -471,15 +471,15 @@ class Neo4jDB
   @param {Number}   tasks.$.id - [Optional] Unique id to identify task. Should be always unique!
   @param {Object}   tasks.$.body - [Optional] JSONable object which will be sent as data to task
   @param {Function} callback - callback function, if present `batch()` method will be called asynchronously
-  @param {Boolean}  plain - if `true`, results will be returned as simple objects instead of Neo4jCursor
   @param {Boolean}  reactive - if `true` and if `plain` is true data of node(s) will be updated before returning
+  @param {Boolean}  plain - if `true`, results will be returned as simple objects instead of Neo4jCursor
   @returns {[Object]} - array of Neo4jCursor(s) or array of Object id `plain` is `true`
   ###
-  batch: (tasks, callback, plain = false, reactive = false) ->
+  batch: (tasks, callback, reactive = false, plain = false) ->
     check tasks, [Object]
     check callback, Match.Optional Function
-    check plain, Boolean
     check reactive, Boolean
+    check plain, Boolean
 
     results = []
     ids = []
@@ -523,114 +523,3 @@ class Neo4jDB
   @returns {Neo4jTransaction} - Neo4jTransaction instance
   ###
   transaction: (settings, opts = {}) -> new Neo4jTransaction @, settings, opts
-  nodes: (id, reactive) -> new Neo4jNode @, id, reactive
-
-class Neo4jNode extends Neo4jData
-  _.extend @::, events.EventEmitter.prototype
-  constructor: (@_db, @_id, @_isReactive = false) ->
-    events.EventEmitter.call @
-    @_ready = false
-    @on 'ready', (node, fut) =>
-      if node and not _.isEmpty node
-        console.log "[onReady]", {@_ready}
-        super @_db.__parseNode(node), @_isReactive
-        @_ready = true
-        console.log 
-        fut.return @ if fut
-        console.log "[onReady]", {@_ready}
-      else
-        fut.return undefined if fut
-
-    @on 'create', (properties, fut) =>
-      unless @_ready
-        @_db.__batch
-          method: 'POST'
-          to: @_db.__service.node.endpoint
-          body: properties
-        , 
-          (error, node) =>
-            if node?.metadata
-              @_id = node.metadata.id
-              @emit 'ready', node, fut
-        , @_isReactive, true
-        return
-      else
-        console.error "You already in node instance, create new one by calling, `db.nodes().create()`"
-        fut.return @
-
-    @on 'setProperty', (name, value, fut) =>
-      if @_ready then @__setProperty name, value, fut else @once 'ready', => @__setProperty name, value, fut
-      return
-
-    @on 'delete', (fut) =>
-      if @_ready then @__delete fut else @once 'ready', => @__delete fut
-      return
-
-    @on 'get', (cb) =>
-      if @_ready then cb() else @once 'ready', => cb()
-      return
-
-    if @_id
-      task = 
-        method: 'GET'
-        to: @_db.__service.node.endpoint + '/' + @_id
-
-      @_db.__batch task, (error, node) =>
-        @emit 'ready', node
-      , @_isReactive, true
-
-  get: ->
-    __wait (fut) => @emit 'get', => fut.return super
-
-  __delete: (fut) ->
-    @_db.__batch 
-      method: 'DELETE'
-      to: @_node._service.self.endpoint
-    , 
-      => fut.return undefined
-    , undefined, true
-    return
-
-  __setProperty: (name, value, fut) ->
-    @_node[name] = value
-    @_db.__batch 
-      method: 'PUT'
-      to: @_node._service.property.endpoint.replace '{key}', name
-      body: value
-    , 
-      => fut.return @
-    , undefined, true
-    return
-
-  __updateProperties: (name, value, fut) ->
-    
-  create: (properties = {}) ->
-    check properties, Match.Optional Object
-    __wait (fut) => @emit 'create', properties, fut
-
-  delete: -> __wait (fut) => @emit 'delete', fut
-
-  properties: -> _.emit @_node, ['_service', 'id', 'labels', 'metadata']
-
-  setProperty: (name, value) ->
-    check name, String
-    check value, Match.OneOf String, Number, Boolean, [String], [Number], [Boolean]
-    __wait (fut) => @emit 'setProperty', name, value, fut
-
-  setProperties: (nameValue) ->
-    check nameValue, Object
-    __wait (fut) => @emit 'setProperties', nameValue, fut
-
-  updateProperties: (nameValue) ->
-    check name, Object
-    @_node[name] = value
-    __wait (fut) => @emit 'updateProperties', nameValue, fut
-
-  property: (name, value) ->
-    check name, String
-    return @node[name] if not value
-    check value, Match.Optional Match.OneOf String, Number, Boolean, [String], [Number], [Boolean]
-    setProperty name unless @_node[name]
-    return updateProperty name, value
-
-  getProperty: (name) -> @node[name]
