@@ -33,23 +33,23 @@ class Neo4jDB
     @defaultHeaders = _.extend @defaultHeaders, opts.headers if opts?.headers
     @defaultHeaders.Authorization = "Basic " + (new Buffer("#{opts.username}:#{opts.password}").toString('base64')) if opts.password and opts.username
 
-
     @on 'ready', => @_ready = true
     @on 'batch', @__request
 
     tasks = []
+    _eb = =>
+      @emit 'batch', tasks
+      tasks = []
+      
     @on 'query', (task) => 
       task.to = task.to.replace @root, ''
       task.id ?= Math.floor(Math.random()*(999999999-1+1)+1)
       tasks.push task
-      _eb = _.once =>
-        @emit 'batch', tasks
-        tasks = []
 
       if @_ready
-        process.nextTick => _eb()
+        process.nextTick => _eb() if tasks.length > 0
       else
-        @once 'ready', => process.nextTick => _eb()
+        @once 'ready', => process.nextTick => _eb() if tasks.length > 0
     
     @__connect()
 
