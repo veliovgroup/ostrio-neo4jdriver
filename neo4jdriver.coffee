@@ -267,15 +267,15 @@ class Neo4jDB
     
     return new Neo4jData response
 
-  __getCursor: (request, callback, reactive) ->
+  __getCursor: (task, callback, reactive) ->
     unless callback
       return __wait (fut) =>
-        @__batch request, (error, data) ->
+        @__batch task, (error, data) ->
           console.error error if error
           fut.return new Neo4jCursor data
         , reactive
     else
-      @__batch request, (error, data) ->
+      @__batch task, (error, data) ->
         callback error, new Neo4jCursor data
       , reactive
       return @
