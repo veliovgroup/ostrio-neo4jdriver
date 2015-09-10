@@ -5,6 +5,7 @@
 ###
 class Neo4jCursor
   constructor: (@_cursor) ->
+    @length = @_cursor.length
   @define 'cursor',
     get: -> @_cursor
     set: -> console.warn "This is not going to work, you trying to reset cursor, make new Cypher query instead"
