@@ -1,85 +1,41 @@
 [![Join the chat at https://gitter.im/VeliovGroup/ostrio-neo4jdriver](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/VeliovGroup/ostrio-neo4jdriver?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-Wrapper for [node-neo4j](https://github.com/thingdom/node-neo4j) by [The Thingdom](https://github.com/thingdom) to be used with Meteor apps
+ - __This is server-side only package, to retrieve data from the client use [call(s)](http://docs.meteor.com/#/full/meteor_call) and [methods](http://docs.meteor.com/#/full/meteor_methods)__
+ - This package uses [batch operations](http://neo4j.com/docs/2.2.5/rest-api-batch-ops.html) to perform queries, than means if you sending multiple queries to Neo4j in current event loop, all of them will be sent in closest (next) event loop inside of the one batch
+ - This package was tested and works like a charm with [GrapheneDB]()
+ - Please see demo hosted on [Meteor (Powered by GrapheneDB)]() and on [Heroku]()
 
 See also [Isomorphic Reactive Driver](https://github.com/VeliovGroup/ostrio-Neo4jreactivity).
 
-### Install to meteor
+Install to meteor
+=======
 ```
 meteor add ostrio:neo4jdriver
 ```
 
-### Usage
-```
-npm install neo4j
-```
-
-##### In your code:
-Create file in ```./server/lib/Neo4jDriver.js```
-```javascript
-this.N4JDB = new Meteor.Neo4j(/* http://username:password@domain.com */); //From this point N4JDB variable available everywhere in your project
-```
-
-Next, just use it.
-
-##### Examples:
-```javascript
-var node = N4JDB.createNode({hello: 'world'});     // instantaneous, but...
-node.save(function (err, node) {    // ...this is what actually persists.
-    if (err) {
-        console.error('Error saving new node to database:', err);
-    } else {
-        console.log('Node saved to database with id:', node.id);
-    }
-});
-```
-
-```javascript
-/*
- * Create user node with _id
- */
-Accounts.onCreateUser(function(options, user) {
-
-    N4JDB.query('CREATE (:User {_id:"' + user._id + '"})', null, function(err, res){
-        if(error){
-            //handle error here
-        }
-    });
-});
-```
-
+API
+=======
+#### `Neo4jDB([url], [auth])`
+ - `url` {*String*} - Absolute URL to Neo4j server, support both `http://` and `https://` protocols
+ - `auth` {*Object*} - User credentials
+ - `auth.password` {*String*}
+ - `auth.username` {*String*}
+Create `Neo4jDB` instance and connect to Neo4j
 ```coffeescript
-###
-This example in coffee
-Here we create some group and set our user as it's owner
-Next, we add relation :owns from owner to newly created group in one query
-###
-groupId = GroupsCollection.insert title: 'Some Group Title', (error) ->
-    error if error 
-        #handle error here
-
-N4JDB.query 'Match (o:User {_id:"' + Meteor.userId() + '"}) ' + 
-            'CREATE (g:Group {_id:"' + groupId + '", owner: "' + Meteor.userId() + '", active: true}) ' + 
-            'CREATE (o) -[:owns]-> (g)', null, (error, res) ->
-    error if error
-        #handle error here
+db = new Neo4jDB 'http://localhost:7474'
+, 
+  username: 'neo4j'
+  password: '1234'
 ```
 
+#### `db.query(cypher, [opts], [callback])`
+ - `cypher` {*String*} - Cypher query string
+ - `opts` {*Object*} - JSON-able map of cypher query parameters
+ - `callback` {*Function*} - Callback with `error` and `result` arguments
+If `callback` is passed, the method runs asynchronously, instead of synchronously, and calls asyncCallback.
 ```coffeescript
-###
-Register catch all callback
-Note - you may register as many callbacks as you need
-@param query {string} - Cypher query
-@param opts {object} - A map of parameters for the Cypher query 
-###
-N4JDB = new Neo4j()
-N4JDB.listen (query, opts) ->
-    console.log query, opts
-
+db.query "CREATE (n {userData}) RETURN n", userData: username: 'John Black'
 ```
-
-**For more info see: [node-neo4j](https://github.com/thingdom/node-neo4j)**
-Code licensed under Apache v. 2.0: [node-neo4j License](https://github.com/thingdom/node-neo4j/blob/master/LICENSE) 
 
 -----
 #### Testing & Dev usage

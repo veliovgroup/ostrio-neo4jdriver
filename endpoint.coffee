@@ -1,3 +1,9 @@
+###
+@locus Server
+@summary Represents Neo4j endpoints
+         Usually not used directly, it is used internally.
+@class Neo4jEndpoint
+###
 class Neo4jEndpoint
   constructor: (@key, @endpoint, @_db) ->
     check @key, String
@@ -9,7 +15,7 @@ class Neo4jEndpoint
       body: body
     data = data.get() if _.isFunction data.get
     return data
-    
+
   __getAndProceed: (funcName, method = 'GET', body = {}, callback) ->
     if callback
       callback = (error, responce) => callback error, @_db[funcName] responce

@@ -3,6 +3,7 @@
 @summary Represents Data state, relations, and data
          Represents as Nodes and Relationships, as well
          Might be reactive data source, if `_isReactive` passed as `true` - data of node will be updated before returning
+         Usually not used directly, it is returned inside of Neo4jCursor instance until `fetch()` or `forEach` methods is called, then it's returned as plain object.
 @class Neo4jData
 ###
 class Neo4jData

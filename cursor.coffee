@@ -1,5 +1,21 @@
+###
+@locus Server
+@summary Implementation of cursor for Neo4j results
+@class Neo4jCursor
+###
 class Neo4jCursor
   constructor: (@_cursor) ->
+  @define 'cursor',
+    get: -> @_cursor
+    set: -> console.warn "This is not going to work, you trying to reset cursor, make new Cypher query instead"
+
+  ###
+  @locus Server
+  @summary Returns array of fetched rows. If query was passed with `reactive` option - data will be updated each event loop. This method is chainable.
+  @name forEach
+  @class Neo4jCursor
+  @returns {[Object]} - Returns array of fetched rows
+  ###
   fetch: (firstOnly) -> 
     data = []
     @forEach (row) -> 
@@ -7,6 +23,14 @@ class Neo4jCursor
     , firstOnly
     data
 
+  ###
+  @locus Server
+  @summary [EXPEMENETAL] Puts all unique nodes from current cursor into Mongo collection
+  @name toMongo
+  @class Neo4jCursor
+  @param {Collection} MongoCollection - Instance of Mongo collection created via `new Mongo.Collection()`
+  @returns {Collection}
+  ###
   toMongo: (MongoCollection) ->
     check MongoCollection, Mongo.Collection
 
@@ -35,8 +59,23 @@ class Neo4jCursor
 
     return MongoCollection
 
+  ###
+  @locus Server
+  @summary Shortcut for `forEach` method, see more info below.
+  @name each
+  @class Neo4jCursor
+  @returns {undefined}
+  ###
   each: (callback) -> @forEach callback
 
+  ###
+  @locus Server
+  @summary Iterates though Neo4j query results. If query was passed with `reactive` option - data will be updated each event loop.
+  @name forEach
+  @class Neo4jCursor
+  @param {Function} callback - Callback function, with `row`, `num` arguments
+  @returns {undefined}
+  ###
   forEach: (callback, firstOnly) ->
     check callback, Function
     for row, rowId in @cursor
@@ -50,7 +89,3 @@ class Neo4jCursor
       callback data, rowId
       break if firstOnly
     return undefined
-
-  @define 'cursor',
-    get: -> @_cursor
-    set: -> console.warn "This is not going to work, you trying to reset cursor, make new Cypher query instead"

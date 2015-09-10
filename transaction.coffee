@@ -56,7 +56,7 @@ class Neo4jTransaction
     else
       data = data: statements: []
       reactive = false
-      
+
     @_db.__call @_commitURL, data, 'POST', (error, response) => 
       @__proceedResults error, response, statement.reactive if statement
       if callback?.return
@@ -109,11 +109,11 @@ class Neo4jTransaction
   @url http://neo4j.com/docs/2.2.5/rest-api-transactional.html#rest-api-execute-statements-in-an-open-transaction
   @param {Object | String | [String]} settings - Cypher query as String or Array of Cypher queries or object of settings
   @param {String | [String]} settings.cypher - Cypher query(ies), alias: `settings.query`
-  @param {Object} settings.opts - Map of cypher query(ies) parameters, aliases: `settings.parameters`, `settings.params`
+  @param {Object}   settings.opts - Map of cypher query(ies) parameters, aliases: `settings.parameters`, `settings.params`
   @param {[String]} settings.resultDataContents - Array of contents to return from Neo4j, like: 'REST', 'row', 'graph'. Default: `['REST']`
-  @param {Boolean} settings.reactive - Reactive nodes updates on Neo4jCursor.fetch(). Default: `false`. Alias: `reactiveNodes`
-  @param {Object} opts - Map of cypher query(ies) parameters
-  @returns Neo4jTransaction
+  @param {Boolean}  settings.reactive - Reactive nodes updates on Neo4jCursor.fetch(). Default: `false`. Alias: `settings.reactiveNodes`
+  @param {Object}   opts - Map of cypher query(ies) parameters
+  @returns {Neo4jTransaction}
   ###
   execute: (settings, opts = {}) ->
     __wait (fut) =>
@@ -130,13 +130,13 @@ class Neo4jTransaction
   @url http://neo4j.com/docs/2.2.5/rest-api-transactional.html#rest-api-commit-an-open-transaction
   @param {Function | Object | String | [String]} settings - Cypher query as String or Array of Cypher queries or object of settings
   @param {String | [String]} settings.cypher - Cypher query(ies), alias: `settings.query`
-  @param {Object} settings.opts - Map of cypher query(ies) parameters, aliases: `settings.parameters`, `settings.params`
+  @param {Object}   settings.opts - Map of cypher query(ies) parameters, aliases: `settings.parameters`, `settings.params`
   @param {[String]} settings.resultDataContents - Array of contents to return from Neo4j, like: 'REST', 'row', 'graph'. Default: `['REST']`
-  @param {Boolean} settings.reactive - Reactive nodes updates on Neo4jCursor.fetch(). Default: `false`. Alias: `reactiveNodes`
-  @param {Function} settings.callback - Callback function. If passed, the method runs asynchronously, instead of synchronously, and calls asyncCallback. Alias: `settings.cb`
-  @param {Object} opts - Map of cypher query(ies) parameters
-  @param {Function} callback - Callback function. If passed, the method runs asynchronously, instead of synchronously, and calls asyncCallback.
-  @returns {[Object]} - Array of Neo4jCursor(s), or empty array if no nodes was returned during Transaction
+  @param {Boolean}  settings.reactive - Reactive nodes updates on Neo4jCursor.fetch(). Default: `false`. Alias: `settings.reactiveNodes`
+  @param {Function} settings.callback - Callback function. If passed, the method runs asynchronously. Alias: `settings.cb`
+  @param {Object}   opts - Map of cypher query(ies) parameters
+  @param {Function} callback - Callback function. If passed, the method runs asynchronously.
+  @returns {[Neo4jCursor]} - Array of Neo4jCursor(s), or empty array if no nodes was returned during Transaction
   ###
   commit: (settings, opts = {}, callback) ->
     {statements, callback} = @__prepare settings, opts, callback, true if settings
@@ -152,7 +152,7 @@ class Neo4jTransaction
   @summary Get current data in Neo4j Transaction
   @name current
   @class Neo4jTransaction
-  @returns {[Object]} - Array of Neo4jCursor(s), or empty array if no nodes was returned during Transaction
+  @returns {[Neo4jCursor]} - Array of Neo4jCursor(s), or empty array if no nodes was returned during Transaction
   ###
   current: () -> @_results
 
@@ -161,6 +161,6 @@ class Neo4jTransaction
   @summary Get last received data in Neo4j Transaction
   @name last
   @class Neo4jTransaction
-  @returns {Object | null} - Neo4jCursor(s), or null if no nodes was returned during Transaction
+  @returns {Neo4jCursor | null} - Neo4jCursor, or null if no nodes was returned during Transaction
   ###
   last: () -> if @_results.length > 0 then @_results[@_results.length - 1] else null

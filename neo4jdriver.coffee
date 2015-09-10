@@ -1,3 +1,8 @@
+###
+@locus Server
+@summary Connector to Neo4j, with basic Neo4j REST API methods implementation
+@class Neo4jDB
+###
 class Neo4jDB
   __proto__: events.EventEmitter.prototype
   constructor: (@url, opts = {}) ->
@@ -283,7 +288,7 @@ class Neo4jDB
   __parseSettings: (settings, opts, callback) ->
     if _.isFunction settings
       callback = settings
-      cypher   = ''
+      cypher   = undefined
       opts     = {}
       settings = {}
     else if _.isArray settings
@@ -308,7 +313,7 @@ class Neo4jDB
     resultDataContents ?= ['REST']
 
     check settings, Object
-    check cypher, Match.OneOf String, [String]
+    check cypher, Match.Optional Match.OneOf String, [String]
     check opts, Object
     check callback, Match.Optional Function
     check resultDataContents, [String]
@@ -320,11 +325,69 @@ class Neo4jDB
   ##################
   # Public Methods #
   ##################
+  ###
+  @locus Server
+  @summary Send query via to Transactional endpoint and return results as graph representation
+  @name graph
+  @class Neo4jDB
+  @url http://neo4j.com/docs/2.2.5/rest-api-transactional.html#rest-api-return-results-in-graph-format
+  @param {Object | String} settings - Cypher query as String or object of settings
+  @param {String}   settings.cypher - Cypher query, alias: `settings.query`
+  @param {Object}   settings.opts - Map of cypher query parameters, aliases: `settings.parameters`, `settings.params`
+  @param {Boolean}  settings.reactive - Reactive nodes updates on Neo4jCursor.fetch(). Default: `false`. Alias: `settings.reactiveNodes`
+  @param {Function} settings.callback - Callback function. If passed, the method runs asynchronously. Alias: `settings.cb`
+  @param {Object}   opts - Map of cypher query parameters
+  @param {Function} callback - Callback function. If passed, the method runs asynchronously
+  @returns {Object} - 
+  ###
+  graph: (settings, opts = {}, callback) ->
+    {cypher, opts, callback, reactive} = @__parseSettings settings, opts, callback
+
+    task = 
+      method: 'POST'
+      to: @__service.transaction.endpoint + '/commit'
+      body:
+        statements: [
+          statement: cypher
+          parameters: opts
+          resultDataContents: ['graph']
+        ]
+
+    return @__getCursor task, callback, reactive
+
+  ###
+  @locus Server
+  @summary Shortcut for `query`, which returns first result from your query as plain Object
+  @name queryOne
+  @class Neo4jDB
+  @param {String} cypher - Cypher query as String
+  @param {Object} opts   - Map of cypher query parameters
+  @returns {Object} - Node object as {n:{id,meta,etc..}}, where is `n` is "NodeLink", for query like `MATCH n RETURN n`
+  ###
   queryOne: (cypher, opts) -> @query(cypher, opts).fetch(true)[0]
+
+  ###
+  @locus Server
+  @summary Shortcut for `query` (see below for more). Always runs synchronously, but without callback.
+  @name querySync
+  @class Neo4jDB
+  @param {String} cypher - Cypher query as String
+  @param {Object} opts   - Map of cypher query parameters
+  @returns {Neo4jCursor}
+  ###
   querySync: (cypher, opts) -> 
     check cypher, String
     check opts, Match.Optional Object
     @query cypher, opts
+
+  ###
+  @locus Server
+  @summary Shortcut for `query` (see below for more). Always runs asynchronously, 
+           even if no callback is passed. Best option for independent deletions.
+  @name queryAsync
+  @class Neo4jDB
+  @returns {Neo4jCursor | undefined} - Returns Neo4jCursor only in callback
+  ###
   queryAsync: (cypher, opts, callback) -> 
     if _.isFunction opts
       callback = opts
@@ -333,6 +396,22 @@ class Neo4jDB
       callback = -> return 
     return @query cypher, opts, callback
 
+  ###
+  @locus Server
+  @summary Send query to Neo4j via transactional endpoint. This Transaction will be immediately committed. This transaction will be sent inside batch, so if you call multiple async queries, all of them will be sent in one batch in closest (next) event loop.
+  @name query
+  @class Neo4jDB
+  @url http://neo4j.com/docs/2.2.5/rest-api-transactional.html#rest-api-begin-and-commit-a-transaction-in-one-request
+  @param {Object | String} settings - Cypher query as String or object of settings
+  @param {String}   settings.cypher - Cypher query, alias: `settings.query`
+  @param {Object}   settings.opts - Map of cypher query parameters, aliases: `settings.parameters`, `settings.params`
+  @param {[String]} settings.resultDataContents - Array of contents to return from Neo4j, like: 'REST', 'row', 'graph'. Default: `['REST']`
+  @param {Boolean}  settings.reactive - Reactive nodes updates on Neo4jCursor.fetch(). Default: `false`. Alias: `settings.reactiveNodes`
+  @param {Function} settings.callback - Callback function. If passed, the method runs asynchronously. Alias: `settings.cb`
+  @param {Object}   opts - Map of cypher query parameters
+  @param {Function} callback - Callback function. If passed, the method runs asynchronously.
+  @returns {Neo4jCursor}
+  ###
   query: (settings, opts = {}, callback) ->
     {cypher, opts, callback, resultDataContents, reactive} = @__parseSettings settings, opts, callback
 
@@ -348,6 +427,22 @@ class Neo4jDB
 
     return @__getCursor task, callback, reactive
 
+  ###
+  @locus Server
+  @summary Send query to Neo4j via cypher endpoint
+  @name cypher
+  @class Neo4jDB
+  @url http://neo4j.com/docs/2.2.5/rest-api-cypher.html
+  @param {Object | String} settings - Cypher query as String or object of settings
+  @param {String}   settings.cypher - Cypher query, alias: `settings.query`
+  @param {Object}   settings.opts - Map of cypher query parameters, aliases: `settings.parameters`, `settings.params`
+  @param {[String]} settings.resultDataContents - Array of contents to return from Neo4j, like: 'REST', 'row', 'graph'. Default: `['REST']`
+  @param {Boolean}  settings.reactive - Reactive nodes updates on Neo4jCursor.fetch(). Default: `false`. Alias: `settings.reactiveNodes`
+  @param {Function} settings.callback - Callback function. If passed, the method runs asynchronously. Alias: `settings.cb`
+  @param {Object}   opts - Map of cypher query parameters
+  @param {Function} callback - Callback function. If passed, the method runs asynchronously.
+  @returns {Neo4jCursor}
+  ###
   cypher: (settings, opts = {}, callback) ->
     {cypher, opts, callback, reactive} = @__parseSettings settings, opts, callback
 
@@ -360,6 +455,22 @@ class Neo4jDB
 
     return @__getCursor task, callback, reactive
 
+  ###
+  @locus Server
+  @summary Sent tasks to batch endpoint, this method allows to work directly with Neo4j REST API
+  @name batch
+  @class Neo4jDB
+  @url http://neo4j.com/docs/2.2.5/rest-api-batch-ops.html
+  @param {[Object]} tasks - Array of tasks
+  @param {String}   tasks.$.method  - HTTP(S) method used sending this task, one of: 'POST', 'GET', 'PUT', 'DELETE', 'HEAD'
+  @param {String}   tasks.$.to - Endpoint (URL) for task
+  @param {Number}   tasks.$.id - [Optional] Unique id to identify task. Should be always unique!
+  @param {Object}   tasks.$.body - [Optional] JSONable object which will be sent as data to task
+  @param {Function} callback - callback function, if present `batch()` method will be called asynchronously
+  @param {Boolean}  plain - if `true`, results will be returned as simple objects instead of Neo4jCursor
+  @param {Boolean}  reactive - if `true` and if `plain` is true data of node(s) will be updated before returning
+  @returns {[Object]} - array of Neo4jCursor(s) or array of Object id `plain` is `true`
+  ###
   batch: (tasks, callback, plain = false, reactive = false) ->
     check tasks, [Object]
     check callback, Match.Optional Function
@@ -393,6 +504,20 @@ class Neo4jDB
       wait callback
       return @
 
+  ###
+  @locus Server
+  @summary Open Neo4j Transaction. All methods on Neo4jTransaction instance is chainable.
+  @name transaction
+  @class Neo4jDB
+  @url http://neo4j.com/docs/2.2.5/rest-api-transactional.html#rest-api-begin-a-transaction
+  @param {Function | Object | String | [String]} settings - [Optional] Cypher query as String or Array of Cypher queries or object of settings
+  @param {String | [String]} settings.cypher - Cypher query(ies), alias: `settings.query`
+  @param {Object}   settings.opts - Map of cypher query(ies) parameters, aliases: `settings.parameters`, `settings.params`
+  @param {[String]} settings.resultDataContents - Array of contents to return from Neo4j, like: 'REST', 'row', 'graph'. Default: `['REST']`
+  @param {Boolean}  settings.reactive - Reactive nodes updates on Neo4jCursor.fetch(). Default: `false`. Alias: `settings.reactiveNodes`
+  @param {Object} opts - [Optional] Map of cypher query(ies) parameters
+  @returns {Neo4jTransaction} - Neo4jTransaction instance
+  ###
   transaction: (settings, opts = {}) -> new Neo4jTransaction @, settings, opts
   nodes: (id, reactive) -> new Neo4jNode @, id, reactive
 
