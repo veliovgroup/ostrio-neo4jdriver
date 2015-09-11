@@ -1,5 +1,6 @@
 db = new Neo4jDB 'http://localhost:7474', {username: 'neo4j', password: '1234'}
 
+
 __nodeCRC__ = (test, node, labels, props) ->
   test.isTrue _.has node, 'id'
   test.isTrue _.isNumber node.id
@@ -130,6 +131,24 @@ __AsyncBasicsTest__ = (test, completed, funcName) ->
       nodes = cursor.fetch()
       test.equal nodes.length, 0, "No nodes is returned on DELETE"
       completed()
+
+__nodesInstanceCRC__ = (test, node) ->
+  test.instanceOf node, Neo4jNode
+  test.isTrue _.isFunction node.getProperty
+  test.isTrue _.isFunction node.property
+  test.isTrue _.isFunction node.updateProperties
+  test.isTrue _.isFunction node.setProperties
+  test.isTrue _.isFunction node.setProperty
+  test.isTrue _.isFunction node.properties
+  test.isTrue _.isFunction node.delete
+  test.isTrue _.isFunction node.get
+  test.isTrue _.isFunction node.__refresh
+  test.isTrue _.isFunction node.update
+
+Tinytest.add 'service endpoints', (test) ->
+  test.isTrue _.isArray db.propertyKeys()
+  test.isTrue _.isArray db.labels()
+  test.isTrue _.isArray db.relationshipTypes()
 
 ###
 @test 
@@ -722,6 +741,434 @@ Tinytest.add 'db.batch [With custom ID] [REACTIVE]', (test) ->
         method: "POST"
         to: db.__service.cypher.endpoint
         body: query: "MATCH (n:BatchTestReactive) DELETE n"], -> return
+
+###
+@test 
+@description Check nodes creation / deletion
+db.nodes(props)
+###
+Tinytest.add 'db.nodes create / delete', (test) ->
+  node = db.nodes()
+  _id = node.get().id
+  
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {}
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+  __nodeCRC__ test, _node.n, [], {}
+
+  test.equal node.delete(), undefined
+  test.equal node._node, undefined
+  test.equal node.get(), undefined
+  test.equal db.queryOne("MATCH n WHERE id(n) = {id} RETURN n", {id: _id}) , undefined
+
+###
+@test 
+@description Check nodes creation / deletion
+db.nodes(props)
+###
+Tinytest.add 'db.nodes create / delete (2nd way)', (test) ->
+  node = db.nodes({testNodes: true})
+  _id = node.get().id
+  
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {testNodes: true}
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+  __nodeCRC__ test, _node.n, [], {testNodes: true}
+
+  test.equal node.delete(), undefined
+  test.equal node._node, undefined
+  test.equal node.get(), undefined
+  test.equal db.queryOne("MATCH n WHERE id(n) = {id} RETURN n", {id: _id}) , undefined
+
+###
+@test 
+@description Check nodes creation / setProperty / deletion
+db.nodes(props).setProperty(name, val)
+###
+Tinytest.add 'db.nodes create / setProperty / delete', (test) ->
+  node = db.nodes({testNodes: true})
+  _id = node.get().id
+  
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {testNodes: true}
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+  __nodeCRC__ test, _node.n, [], {testNodes: true}
+
+  node.setProperty 'newProp', 'newPropValue'
+
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {testNodes: true, newProp: 'newPropValue'}
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+  __nodeCRC__ test, _node.n, [], {testNodes: true, newProp: 'newPropValue'}
+
+  test.equal node.delete(), undefined
+  test.equal node._node, undefined
+  test.equal node.get(), undefined
+  test.equal db.queryOne("MATCH n WHERE id(n) = {id} RETURN n", {id: _id}) , undefined
+
+###
+@test 
+@description Check nodes creation / setProperty / deletion
+db.nodes(props).setProperty({name: val})
+###
+Tinytest.add 'db.nodes create / setProperty (from obj) / delete', (test) ->
+  node = db.nodes({testNodes2: 'true'})
+  _id = node.get().id
+  
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {testNodes2: 'true'}
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+  __nodeCRC__ test, _node.n, [], {testNodes2: 'true'}
+
+  node.setProperty {newProp2: 'newPropValue2'}
+
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {testNodes2: 'true', newProp2: 'newPropValue2'}
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+  __nodeCRC__ test, _node.n, [], {testNodes2: 'true', newProp2: 'newPropValue2'}
+
+  test.equal node.delete(), undefined
+  test.equal node._node, undefined
+  test.equal node.get(), undefined
+  test.equal db.queryOne("MATCH n WHERE id(n) = {id} RETURN n", {id: _id}) , undefined
+
+###
+@test 
+@description Check nodes creation / setProperty / deletion
+db.nodes(props).updateProperties({name: val, name2: val2})
+###
+Tinytest.add 'db.nodes create / updateProperties / delete', (test) ->
+  node = db.nodes({testNodes3: 'updateProperties', testNodes4: 'updateProperties2'})
+  _id = node.get().id
+
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {testNodes3: 'updateProperties', testNodes4: 'updateProperties2'}
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+  __nodeCRC__ test, _node.n, [], {testNodes3: 'updateProperties', testNodes4: 'updateProperties2'}
+
+  node.updateProperties {testNodes3: 'Other val', testNodes4: 'Other val 2'}
+
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {testNodes3: 'Other val', testNodes4: 'Other val 2'}
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+  __nodeCRC__ test, _node.n, [], {testNodes3: 'Other val', testNodes4: 'Other val 2'}
+
+  test.equal node.delete(), undefined
+  test.equal node._node, undefined
+  test.equal node.get(), undefined
+  test.equal db.queryOne("MATCH n WHERE id(n) = {id} RETURN n", {id: _id}) , undefined
+
+###
+@test 
+@description Check nodes creation / setProperty / deletion
+Expect to delete or override old props, and create new
+db.nodes(props).updateProperties({name: val, name2: val2})
+###
+Tinytest.add 'db.nodes create / updateProperties (not previously defined) / delete', (test) ->
+  node = db.nodes({testNodes3: 'updateProperties', testNodes4: 'updateProperties2'})
+  _id = node.get().id
+
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {testNodes3: 'updateProperties', testNodes4: 'updateProperties2'}
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+  __nodeCRC__ test, _node.n, [], {testNodes3: 'updateProperties', testNodes4: 'updateProperties2'}
+
+  node.updateProperties {testNodes7: 'Other val 4', testNodes8: 'Other val 5'}
+
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {testNodes7: 'Other val 4', testNodes8: 'Other val 5'}
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+  __nodeCRC__ test, _node.n, [], {testNodes7: 'Other val 4', testNodes8: 'Other val 5'}
+
+  test.isTrue EJSON.equals node.properties(), {testNodes7: 'Other val 4', testNodes8: 'Other val 5'}
+
+  test.equal node.delete(), undefined
+  test.equal node._node, undefined
+  test.equal node.get(), undefined
+  test.equal db.queryOne("MATCH n WHERE id(n) = {id} RETURN n", {id: _id}) , undefined
+
+###
+@test 
+@description Check nodes creation / setProperties / deletion
+db.nodes(props).setProperties({name: val, name2: val2})
+###
+Tinytest.add 'db.nodes create / setProperties / delete', (test) ->
+  node = db.nodes({one: 1})
+  _id = node.get().id
+  
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {one: 1}
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+  __nodeCRC__ test, _node.n, [], {one: 1}
+
+  node.setProperties {three: 3, four: 4}
+
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {one: 1, three: 3, four: 4}
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+  __nodeCRC__ test, _node.n, [], {one: 1, three: 3, four: 4}
+
+  test.isTrue EJSON.equals node.properties(), {one: 1, three: 3, four: 4}
+
+  test.equal node.delete(), undefined
+  test.equal node._node, undefined
+  test.equal node.get(), undefined
+  test.equal db.queryOne("MATCH n WHERE id(n) = {id} RETURN n", {id: _id}) , undefined
+
+###
+@test 
+@description Check nodes creation / property / deletion
+db.nodes(props).property(name)
+###
+Tinytest.add 'db.nodes create / property [GET] / delete', (test) ->
+  node = db.nodes({one: 1, two: 2})
+  test.equal node.property('two'), 2
+  test.equal node.delete(), undefined
+  test.equal node.get(), undefined
+
+###
+@test 
+@description Check nodes creation / property / deletion
+db.nodes(props).property(name, value).property(name)
+###
+Tinytest.add 'db.nodes create / property [SET] / delete', (test) ->
+  node = db.nodes({one: 1, two: 2})
+  __nodesInstanceCRC__ test, node
+
+  _id = node.get().id
+  test.equal node.property('three', 3).property('three'), 3
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+  __nodeCRC__ test, _node.n, [], {one: 1, two: 2, three: 3}
+  test.equal node.delete(), undefined
+  test.equal node.get(), undefined
+
+###
+@test 
+@description Check nodes creation / property / deletion
+db.nodes(props).property(name, value).property(name)
+###
+Tinytest.add 'db.nodes create / property [UPDATE] / delete', (test) ->
+  node = db.nodes({one: 1, two: 2})
+  __nodesInstanceCRC__ test, node
+
+  _id = node.get().id
+  test.equal node.property('two', 3).property('two'), 3
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+  __nodeCRC__ test, _node.n, [], {one: 1, two: 3}
+  test.equal node.delete(), undefined
+  test.equal node.get(), undefined
+
+###
+@test 
+@description Check nodes creation / getProperty / deletion
+db.nodes(props).getProperty(name)
+###
+Tinytest.add 'db.nodes create / getProperty / delete', (test) ->
+  node = db.nodes({one: 1, two: 2})
+  __nodesInstanceCRC__ test, node
+
+  test.equal node.getProperty('two'), 2
+  test.equal node.delete(), undefined
+  test.equal node.get(), undefined
+
+###
+@test 
+@description Check nodes creation / deletion
+db.nodes({node returned from Neo4j}).delete()
+###
+Tinytest.add 'db.nodes initiate from obj / delete', (test) ->
+  task = 
+    method: 'POST'
+    to: db.__service.cypher.endpoint
+    body:
+      query: "CREATE (n {data}) RETURN n"
+      params: data: test: true
+  _node = db.__batch task, undefined, false, true
+
+  node = db.nodes(_node.data[0][0])
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {test: true}
+  test.equal node.delete(), undefined
+  test.equal node.get(), undefined
+
+###
+@test 
+@description Check nodes creation / deletion
+db.nodes({node ID}).delete()
+###
+Tinytest.add 'db.nodes initiate by id / delete', (test) ->
+  task = 
+    method: 'POST'
+    to: db.__service.cypher.endpoint
+    body:
+      query: "CREATE (n {data}) RETURN n"
+      params: data: second: '2nd'
+  _node = db.__batch task, undefined, false, true
+  
+  node = db.nodes(_node.data[0][0].metadata.id)
+  __nodeCRC__ test, node.get(), [], {second: '2nd'}
+  test.equal node.delete(), undefined
+  test.equal node.get(), undefined
+
+
+###
+@test 
+@description Check nodes creation / deletion
+db.nodes({node returned from Neo4j}, true).delete(name)
+###
+Tinytest.add 'db.nodes initiate from obj / delete [REACTIVE]', (test) ->
+  task = 
+    method: 'POST'
+    to: db.__service.cypher.endpoint
+    body:
+      query: "CREATE (n {data}) RETURN n"
+      params: data: test: true
+  _node = db.__batch task, undefined, false, true
+
+  node = db.nodes(_node.data[0][0], true)
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {test: true}
+
+  db.querySync "MATCH n WHERE id(n) = {id} SET n.newProp = 'rrrrreactive!'", {id: _node.data[0][0].metadata.id}
+  __nodeCRC__ test, node.get(), [], {test: true, newProp: 'rrrrreactive!'}
+  test.equal node.delete(), undefined
+  test.equal node.get(), undefined
+
+###
+@test 
+@description Check nodes creation / deletion
+db.nodes({node ID}, true).delete(name)
+###
+Tinytest.add 'db.nodes initiate by id / delete [REACTIVE]', (test) ->
+  task = 
+    method: 'POST'
+    to: db.__service.cypher.endpoint
+    body:
+      query: "CREATE (n {data}) RETURN n"
+      params: data: test: true
+  _node = db.__batch task, undefined, false, true
+
+  node = db.nodes(_node.data[0][0].metadata.id, true)
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {test: true}
+
+  db.querySync "MATCH n WHERE id(n) = {id} SET n.newProp = 'rrrrreactive!'", {id: _node.data[0][0].metadata.id}
+  __nodeCRC__ test, node.get(), [], {test: true, newProp: 'rrrrreactive!'}
+  test.equal node.delete(), undefined
+  test.equal node.get(), undefined
+
+###
+@test 
+@description Check functionality of Neo4jCursor
+###
+Tinytest.add 'Neo4jCursor = db.query(...)', (test) ->
+  db.transaction().commit([
+    "CREATE (n:Neo4jCursorTests {data1}) RETURN n"
+    "CREATE (n:Neo4jCursorTests {data2}) RETURN n"
+    "CREATE (n:Neo4jCursorTests {data3}) RETURN n"
+  ], 
+    {
+      data1: testing1: 'Neo4jCursorTests1'
+      data2: testing2: 'Neo4jCursorTests2'
+      data3: testing3: 'Neo4jCursorTests3'
+    })
+
+  cursor = db.query "MATCH (n:Neo4jCursorTests) RETURN n"
+
+  test.isTrue _.isObject(cursor.cursor), "Has cursor"
+  test.isTrue _.has(cursor, 'length'), "Has length"
+  test.equal cursor.length, 3
+
+  test.isTrue _.has(cursor, '_current'), "Has _current"
+  test.equal cursor._current, 0
+
+  test.isTrue _.has(cursor, 'hasNext'), "Has hasNext"
+  test.equal cursor.hasNext, true
+
+  test.isTrue _.has(cursor, 'hasPrevious'), "Has hasPrevious"
+  test.equal cursor.hasPrevious, false
+
+  test.isTrue _.isFunction(cursor.fetch), "Has fetch"
+  test.isTrue _.isFunction(cursor.first), "Has first"
+  test.isTrue _.isFunction(cursor.current), "Has current"
+  test.isTrue _.isFunction(cursor.next), "Has next"
+  test.isTrue _.isFunction(cursor.previous), "Has previous"
+  test.isTrue _.isFunction(cursor.toMongo), "Has toMongo"
+  test.isTrue _.isFunction(cursor.each), "Has each"
+  test.isTrue _.isFunction(cursor.forEach), "Has forEach"
+
+  _.each cursor.fetch(), (node, num) ->
+    obj = {}
+    obj["testing#{num + 1}"] = "Neo4jCursorTests#{ num + 1 }"
+    __nodeCRC__ test, node.n, ["Neo4jCursorTests"], obj
+
+  cursor.forEach (node, num) ->
+    obj = {}
+    obj["testing#{num + 1}"] = "Neo4jCursorTests#{ num + 1 }"
+    __nodeCRC__ test, node.n, ["Neo4jCursorTests"], obj
+
+  cursor.each (node, num) ->
+    __nodesInstanceCRC__ test, node.n
+    obj = {}
+    obj["testing#{num + 1}"] = "Neo4jCursorTests#{ num + 1 }"
+    __nodeCRC__ test, node.n.get(), ["Neo4jCursorTests"], obj
+
+  cursor.each (node, num) ->
+    test.equal node.n.delete(), undefined
+
+###
+@test 
+@description Check nodes creation / getProperty / deletion
+db.queryOne("...").nodeLink.delete()
+###
+Tinytest.add 'db.nodes test returned node instance from db.queryOne / delete', (test) ->
+  cursor = db.query "CREATE (n:NodesTests {data}) RETURN n", {data: testing: 'NodesTests'}
+
+  test.equal cursor.length, 1
+
+  node = cursor.current().n
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), ["NodesTests"], {testing: 'NodesTests'}
+
+  test.equal node.delete(), undefined
+
+###
+@test 
+@description Check nodes fetching / deletion
+db.query("...").current().nodeLink.delete()
+###
+Tinytest.add 'db.nodes test returned node instance from db.queryOne / delete [REACTIVE]', (test) ->
+  cursor = db.query 
+    query: "CREATE (n:NodesTestsReactive {data}) RETURN n"
+    opts: data: testingReactive: 'some data'
+    reactive: true
+
+  test.equal cursor.length, 1
+
+  node = cursor.current().n
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), ["NodesTestsReactive"], {testingReactive: 'some data'}
+
+  db.querySync "MATCH n WHERE id(n) = {id} SET n.newProp = 'rrrrreactive!'", {id: node.get().id}
+
+  __nodeCRC__ test, node.get(), ["NodesTestsReactive"], {testingReactive: 'some data', newProp: 'rrrrreactive!'}
+
+  test.equal node.delete(), undefined
+
 
 
 
