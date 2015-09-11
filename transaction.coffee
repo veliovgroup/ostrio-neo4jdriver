@@ -14,8 +14,9 @@ class Neo4jTransaction
     @_results = []
 
     @on 'transaction', =>
+      _arguments = arguments
       cb = arguments[arguments.length - 1]
-      if @_ready then cb.apply @, arguments else @once 'ready', => cb.apply @, arguments
+      if @_ready then cb.apply @, _arguments else @once 'ready', => cb.apply @, _arguments
       return
 
     @on 'ready', (cb) => cb null, true
