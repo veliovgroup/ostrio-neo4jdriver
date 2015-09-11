@@ -366,6 +366,15 @@ class Neo4jDB
 
   ###
   @locus Server
+  @summary Return version of Neo4j server we connected to
+  @name version
+  @class Neo4jDB
+  @returns {String}
+  ###
+  version: -> @__service.neo4j_version.get()
+
+  ###
+  @locus Server
   @summary Send query via to Transactional endpoint and return results as graph representation
   @name graph
   @class Neo4jDB
@@ -377,7 +386,7 @@ class Neo4jDB
   @param {Function} settings.callback - Callback function. If passed, the method runs asynchronously. Alias: `settings.cb`
   @param {Object}   opts - Map of cypher query parameters
   @param {Function} callback - Callback function. If passed, the method runs asynchronously
-  @returns {Object}
+  @returns {Neo4jCursor} - [{nodes: [], relationships: []}]
   ###
   graph: (settings, opts = {}, callback) ->
     {cypher, opts, callback, reactive} = @__parseSettings settings, opts, callback

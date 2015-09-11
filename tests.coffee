@@ -149,6 +149,7 @@ Tinytest.add 'service endpoints', (test) ->
   test.isTrue _.isArray db.propertyKeys()
   test.isTrue _.isArray db.labels()
   test.isTrue _.isArray db.relationshipTypes()
+  test.isTrue _.isString db.version()
 
 ###
 @test 
