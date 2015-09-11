@@ -11,6 +11,7 @@ Package.onUse(function(api) {
     'helpers.coffee',
     'cursor.coffee',
     'data.coffee',
+    'node.coffee',
     'endpoint.coffee',
     'transaction.coffee',
     'neo4jdriver.coffee'
