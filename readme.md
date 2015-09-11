@@ -337,13 +337,9 @@ $ cd MyProject
 ```
  - Create a symlink from your project folder to the ostrio-neo4jdriver package folder. Use the correct path for your own environment, instead of `/path/to/`.
 ```
-$ mrt link-package /path/to/ostrio-neo4jdriver
-```
-** NOTE: This requires Meteorite. [Here's how to install it](https://github.com/oortcloud/meteorite#installing-meteorite). An alternative that does not require Meteorite is to execute the following command, again with the correct path instead of `/path/to/`:**
-```
 $ mkdir -p packages && ln -s /path/to/ostrio-neo4jdriver packages/ostrio-neo4jdriver
 ```
- - Then run:
+ - Now run:
 ```
 $ meteor add ostrio:neo4jdriver
 $ meteor
