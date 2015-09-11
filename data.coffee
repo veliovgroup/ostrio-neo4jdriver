@@ -32,12 +32,12 @@ class Neo4jData
 
   ###
   @locus Server
-  @summary Update Neo4j data, only if data was requested as REST
+  @summary Update Neo4j data, only if data was requested as REST and instance is reactive
   @name update
   @class Neo4jData
   @url http://neo4j.com/docs/2.2.5/rest-api-nodes.html#rest-api-get-node
   @returns {Object | [Object] | [String]} - Depends from cypher query
   ###
   update: ->
-    @node = @_node._service.self.__getAndProceed '__parseNode' if @_node?._service
+    @node = @_node._service.self.__getAndProceed '__parseNode' if @_node?._service and @_isReactive
     return @
