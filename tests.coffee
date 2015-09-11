@@ -1171,5 +1171,268 @@ Tinytest.add 'db.nodes test returned node instance from db.queryOne / delete [RE
   test.equal node.delete(), undefined
 
 
+###
+@test 
+@description Check nodes fetching / setting label / deletion
+db.nodes().setLabel('label').delete()
+###
+Tinytest.add 'db.nodes create / setLabel / delete', (test) ->
+  node = db.nodes().setLabel('MyLabel')
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel"], {}
+
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / setting label / deletion
+db.nodes().setLabels(['label', 'label2']).delete()
+###
+Tinytest.add 'db.nodes create / setLabels / delete', (test) ->
+  node = db.nodes().setLabels(['MyLabel', 'MyLabel2'])
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel", "MyLabel2"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel", "MyLabel2"], {}
+  
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / setting label / deletion
+db.nodes().setLabels(['label', 'label2']).setLabel('label').setLabels(['label', 'label2']).setLabel('label').delete()
+###
+Tinytest.add 'db.nodes create / setLabels / setLabel / delete', (test) ->
+  node = db.nodes().setLabels(['MyLabel', 'MyLabel2']).setLabel('MyLabel3').setLabels(['MyLabel4', 'MyLabel5']).setLabel('MyLabel6')
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel", "MyLabel2", "MyLabel3", "MyLabel4", "MyLabel5", "MyLabel6"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel", "MyLabel2", "MyLabel3", "MyLabel4", "MyLabel5", "MyLabel6"], {}
+  
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / setting label / deletion
+db.nodes().setLabels(['label', 'label2']).setLabel('label').setLabels(['label', 'label2']).setLabel('label').delete()
+###
+Tinytest.add 'db.nodes create / setLabels / setLabel / delete [DUPLICATES]', (test) ->
+  node = db.nodes().setLabels(['MyLabel', 'MyLabel2']).setLabel('MyLabel').setLabels(['MyLabel2', 'MyLabel5']).setLabel('MyLabel5')
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel", "MyLabel2", "MyLabel5"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel", "MyLabel2", "MyLabel5"], {}
+  
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / setting label / deletion
+db.nodes().setLabels(['label', 'label2']).setLabel('label').setLabels(['label', 'label2']).setLabel('label').delete()
+###
+Tinytest.add 'db.nodes create / setLabels / setLabel / delete [Invalid Names]', (test) ->
+  node = db.nodes().setLabels(['My Label', '']).setLabel('').setLabel('Label').setLabels(['', ''])
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["My Label", "Label"], {}
+  __nodeCRC__ test, _node.n, ["My Label", "Label"], {}
+  
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / replacing label / deletion
+db.nodes().setLabels(['label', 'label2']).replaceLabels(['label']).delete()
+###
+Tinytest.add 'db.nodes create / replaceLabels / delete', (test) ->
+  node = db.nodes().setLabels(['MyLabel1', 'MyLabel2'])
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2"], {}
+
+  node.replaceLabels(["MyLabel3"])
+  
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel3"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel3"], {}
+
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / replacing label / deletion
+db.nodes().setLabels(['label', 'label2']).replaceLabels(['label']).delete()
+###
+Tinytest.add 'db.nodes create / replaceLabels / delete [DUPLICATES]', (test) ->
+  node = db.nodes().setLabels(['MyLabel1', 'MyLabel2', 'MyLabel1']).setLabel('MyLabel1')
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2",], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2"], {}
+
+  node.setLabel('MyLabel1').replaceLabels(["MyLabel3", "MyLabel3"]).setLabel("MyLabel3")
+  
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel3"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel3"], {}
+
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / replacing label / deletion
+db.nodes().setLabels(['label', 'label2']).replaceLabels(['label']).delete()
+###
+Tinytest.add 'db.nodes create / replaceLabels / delete [Invalid Names]', (test) ->
+  node = db.nodes().setLabels(['MyLabel1', 'MyLabel2', '']).setLabel('').replaceLabels(["", ""])
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2",], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2"], {}
+
+  node.replaceLabels(["", "MyLabel3"])
+  
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel3"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel3"], {}
+
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / deleting label / deletion
+db.nodes().setLabels(['label', 'label2']).deleteLabel('label').delete()
+###
+Tinytest.add 'db.nodes create / deleteLabel / delete', (test) ->
+  node = db.nodes().setLabels(['MyLabel1', 'MyLabel2'])
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2",], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2"], {}
+
+  node.deleteLabel('MyLabel1')
+  
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel2"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel2"], {}
+
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / deleting label / deletion
+db.nodes().setLabels(['label', 'label2']).deleteLabel('label').delete()
+###
+Tinytest.add 'db.nodes create / deleteLabel / delete [Non Existent]', (test) ->
+  node = db.nodes().setLabels(['MyLabel1', 'MyLabel2'])
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2"], {}
+
+  node.deleteLabel('MyLabel5')
+  
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2"], {}
+
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / deleting labels / deletion
+db.nodes().setLabels(['label', 'label2', 'label3']).deleteLabels(['label', 'label3']).delete()
+###
+Tinytest.add 'db.nodes create / deleteLabels / delete', (test) ->
+  node = db.nodes().setLabels(['MyLabel1', 'MyLabel2', 'MyLabel3'])
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2", "MyLabel3"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2", "MyLabel3"], {}
+
+  node.deleteLabels(['MyLabel1', 'MyLabel3'])
+  
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel2"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel2"], {}
+
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / deleting labels / deletion
+db.nodes().setLabels(['label', 'label2', 'label3']).deleteLabels(['label5', 'label6']).delete()
+###
+Tinytest.add 'db.nodes create / deleteLabels / delete [Non Existent]', (test) ->
+  node = db.nodes().setLabels(['MyLabel1', 'MyLabel2', 'MyLabel3'])
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2", "MyLabel3"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2", "MyLabel3"], {}
+
+  node.deleteLabels(['MyLabel5', 'MyLabel6'])
+  
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2", "MyLabel3"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2", "MyLabel3"], {}
+
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / getting labels / deletion
+db.nodes().labels().delete()
+###
+Tinytest.add 'db.nodes create / labels / delete [GET]', (test) ->
+  node = db.nodes().setLabels(['MyLabel1', 'MyLabel2', 'MyLabel3'])
+  test.equal node.labels(), ["MyLabel1", "MyLabel2", "MyLabel3"]
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / getting labels / deletion
+db.nodes().labels(['label', 'label2']).labels().delete()
+###
+Tinytest.add 'db.nodes create / labels / delete [SET / GET]', (test) ->
+  node = db.nodes().labels(['MyLabel1', 'MyLabel2', 'MyLabel3'])
+  test.equal node.labels(), ["MyLabel1", "MyLabel2", "MyLabel3"]
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2", "MyLabel3"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2", "MyLabel3"], {}
+
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / getting labels / deletion
+db.nodes().labels(['label', 'label2']).labels().delete()
+###
+Tinytest.add 'db.nodes create / labels / delete [SET / GET] [REACTIVE]', (test) ->
+  node = db.nodes(null, true)
+  test.equal node.labels(), []
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} SET n:MyLabel1 RETURN n", {id: node.get().id}
+  test.equal node.labels(), ["MyLabel1"]
+  __nodeCRC__ test, node.get(), ["MyLabel1"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1"], {}
+
+  node.delete()
+
 
 

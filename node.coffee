@@ -68,7 +68,9 @@ class Neo4jNode extends Neo4jData
         fut.return undefined
     , undefined, true
 
-  properties: -> @__return (fut) -> fut.return _.omit @node, ['_service', 'id', 'labels', 'metadata']
+  properties: -> @__return (fut) -> 
+    @update()
+    fut.return _.omit @node, ['_service', 'id', 'labels', 'metadata']
 
   setProperty: (name, value) ->
     if _.isString name
@@ -127,4 +129,100 @@ class Neo4jNode extends Neo4jData
     check value, Match.Optional Match.OneOf String, Number, Boolean, [String], [Number], [Boolean]
     return @setProperty name, value
 
-  getProperty: (name) -> @__return (fut) => fut.return @node[name]
+  getProperty: (name) -> @__return (fut) => 
+    @update()
+    fut.return @node[name]
+
+  setLabel: (label) ->
+    check label, String
+    @__return (fut) ->
+      if label.length > 0 and !~@_node.metadata.labels.indexOf label
+        @_node.metadata.labels.push label
+        @_db.__batch 
+          method: 'POST'
+          to: @_node._service.labels.endpoint
+          body: label
+        , 
+          => fut.return @
+        , undefined, true
+      else
+        fut.return @
+
+  setLabels: (labels) ->
+    check labels, [String]
+    @__return (fut) ->
+      labels = _.uniq labels
+      labels = (label for label in labels when label.length > 0)
+      if labels.length > 0
+        @_node.metadata.labels.push label for label in labels
+
+        @_db.__batch 
+          method: 'POST'
+          to: @_node._service.labels.endpoint
+          body: labels
+        , 
+          => fut.return @
+        , undefined, true
+      else
+        fut.return @
+
+  replaceLabels: (labels) ->
+    check labels, [String]
+    @__return (fut) ->
+      labels = _.uniq labels
+      labels = (label for label in labels when label.length > 0)
+      if labels.length > 0
+        @_node.metadata.labels.splice 0, @_node.metadata.labels.length
+        @_node.metadata.labels.push label for label in labels
+
+        @_db.__batch 
+          method: 'PUT'
+          to: @_node._service.labels.endpoint
+          body: labels
+        , 
+          => fut.return @
+        , undefined, true
+      else
+        fut.return @
+
+  deleteLabel: (label) ->
+    check label, String
+    @__return (fut) ->
+      if label.length > 0 and !!~@_node.metadata.labels.indexOf label
+        @_node.metadata.labels.splice @_node.metadata.labels.indexOf(label), 1
+        @_db.__batch 
+          method: 'DELETE'
+          to: @_node._service.labels.endpoint + '/' + label
+        , 
+          => fut.return @
+        , undefined, true
+      else
+        fut.return @
+
+  deleteLabels: (labels) ->
+    check labels, [String]
+    @__return (fut) ->
+      labels = _.uniq labels
+      labels = (label for label in labels when label.length > 0 and !!~@_node.metadata.labels.indexOf label)
+
+      if labels.length > 0
+        tasks = []
+        for label in labels
+          @_node.metadata.labels.splice @_node.metadata.labels.indexOf(label), 1
+
+          tasks.push
+            method: 'DELETE'
+            to: @_node._service.labels.endpoint + '/' + label
+
+        @_db.batch tasks, =>
+          fut.return @
+        , false, true
+      else
+        fut.return @
+
+  labels: (labels) ->
+    check labels, Match.Optional [String]
+    return @setLabels labels if labels
+    return @__return (fut) -> 
+      @update()
+      fut.return @_node.metadata.labels
