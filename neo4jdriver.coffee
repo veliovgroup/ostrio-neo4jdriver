@@ -486,7 +486,7 @@ class Neo4jDB
     for task in tasks
       check task.method, Match.OneOf 'POST', 'GET', 'PUT', 'DELETE', 'HEAD'
       check task.to, String
-      check task.body, Match.Optional Object
+      check task.body, Match.Optional Match.OneOf Object, String, Number
 
       task.id ?= Math.floor(Math.random()*(999999999-1+1)+1)
       ids.push task.id
@@ -523,3 +523,141 @@ class Neo4jDB
   @returns {Neo4jTransaction} - Neo4jTransaction instance
   ###
   transaction: (settings, opts = {}) -> new Neo4jTransaction @, settings, opts
+
+
+  nodes: (id, reactive) -> new Neo4jNode @, id, reactive
+
+class Neo4jNode extends Neo4jData
+  _.extend @::, events.EventEmitter.prototype
+  constructor: (@_db, @_id, @_isReactive = false) ->
+    events.EventEmitter.call @
+
+    @_ready = false
+    @on 'ready', (node, fut) =>
+      if node and not _.isEmpty node
+        console.log "[onReady]", {@_ready}
+        @_id = node.metadata.id
+        super @_db.__parseNode(node), @_isReactive
+        @_ready = true
+        fut.return @ if fut
+        console.log "[onReady]", {@_ready}
+      else
+        fut.return undefined if fut
+
+    @on 'create', (properties, fut) =>
+      unless @_ready
+        @_db.__batch
+          method: 'POST'
+          to: @_db.__service.node.endpoint
+          body: properties
+        , 
+          (error, node) =>
+            console.error error if error
+            if node?.metadata
+              @emit 'ready', node, fut
+            else
+              console.error "Node is not crated or created wrongly, metadata is not returned!"
+        , @_isReactive, true
+        return
+      else
+        console.error "You already in node instance, create new one by calling, `db.nodes().create()`"
+        fut.return @
+
+    @on 'apply', =>
+      cb = arguments[arguments.length - 1]
+      if @_ready then cb.apply @, arguments else @once 'ready', => cb.apply @, arguments
+      return
+
+    if _.isObject @_id
+      if _.has @_id, 'metadata'
+        console.log "Initiate FROM OBJECT"
+        @emit 'ready', @_id
+      else
+        console.log "CREATE FROM OBJECT"
+        properties = @_id
+        @_id = undefined
+        @emit 'create'
+    else if _.isNumber @_id
+        console.log "GET by ID"
+        @_db.__batch method: 'GET', to: @_db.__service.node.endpoint + '/' + @_id, (error, node) =>
+          @emit 'ready', node
+        , @_isReactive, true
+    else
+      @emit 'create'
+
+
+  get: -> __wait (fut) => @emit 'apply', fut, (fut) -> 
+    console.log fut
+    fut.return super
+
+
+  delete: -> __wait (fut) => @emit 'apply', fut, (fut) -> 
+    @_db.__batch 
+      method: 'DELETE'
+      to: @_node._service.self.endpoint
+    , 
+      =>
+        @node = undefined
+        fut.return undefined
+    , undefined, true
+
+  properties: -> _.omit @node, ['_service', 'id', 'labels', 'metadata']
+
+  setProperty: (name, value) ->
+    if _.isString name
+      check name, String
+      check value, Match.OneOf String, Number, Boolean, [String], [Number], [Boolean]
+    else if _.isObject name
+      k = Object.keys(name)[0]
+      value = name[k]
+      name = k
+
+    __wait (fut) => @emit 'apply', name, value, fut, (name, value, fut) ->
+      @_node[name] = value
+      @_db.__batch 
+        method: 'PUT'
+        to: @_node._service.property.endpoint.replace '{key}', name
+        body: value
+      , 
+        => fut.return @
+      , undefined, true
+
+  setProperties: (nameValue) ->
+    check nameValue, Object
+    __wait (fut) => @emit 'apply', nameValue, fut, (nameValue, fut) ->
+      tasks = []
+      for name, value of nameValue
+        @_node[name] = value
+
+        tasks.push
+          method: 'PUT'
+          to: @_node._service.property.endpoint.replace '{key}', name
+          body: value
+
+      @_db.batch tasks, =>
+        fut.return @
+      , false, true
+
+  updateProperties: (nameValue) ->
+    check nameValue, Object
+    __wait (fut) => @emit 'apply', nameValue, fut, (nameValue, fut) ->
+      delete @_node[k] for k, v of _.omit @_node, ['_service', 'id', 'labels', 'metadata']
+
+      for k, v of nameValue
+        @_node[k] = v
+
+      @_db.__batch 
+        method: 'PUT'
+        to: @_node._service.properties.endpoint
+        body: nameValue
+      , 
+        => fut.return @
+      , undefined, true
+
+  property: (name, value) ->
+    check name, String
+    return @node[name] if not value
+    check value, Match.Optional Match.OneOf String, Number, Boolean, [String], [Number], [Boolean]
+    return @setProperty name, value
+
+  getProperty: (name) -> @node[name]
