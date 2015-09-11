@@ -571,9 +571,9 @@ class Neo4jDB
   ###
   @locus Server
   @summary Create or get node object.
-           If no arguments is passed, new node will be created.
-           If first argument is number, node will be fetched from Neo4j
-           If first argument is Object, new node will be created with passed properties
+           If no arguments is passed, then new node will be created.
+           If first argument is number, then node will be fetched from Neo4j
+           If first argument is Object, then new node will be created with passed properties
   @name nodes
   @class Neo4jDB
   @url http://neo4j.com/docs/2.2.5/rest-api-nodes.html
