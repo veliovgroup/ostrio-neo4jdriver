@@ -8,13 +8,16 @@ class Neo4jEndpoint
   constructor: (@key, @endpoint, @_db) ->
     check @key, String
     check @endpoint, String
-  get: (method = 'GET', body = {}) -> 
-    data = @_db.__batch
-      method: method
-      to: @endpoint
-      body: body
-    data = data.get() if _.isFunction data.get
-    return data
+
+  get: (method = 'GET', options = {}, directly) -> 
+    if directly
+      @_db.__call(@endpoint, options, method).data
+    else
+      data = @_db.__batch
+        method: method
+        to: @endpoint
+        body: options.body
+      data = data.get() if _.isFunction data.get
 
   __getAndProceed: (funcName, method = 'GET', body = {}, callback) ->
     if callback
