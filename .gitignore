@@ -2,3 +2,5 @@
 .npm
 
 demo/demo.js
+
+.DS_Store
