@@ -303,15 +303,48 @@ cursor.each (node) ->
 -----
 #### Testing & Dev usage
 ##### Testing
- - Clone this repository
- - Go to package directory
- - Run in console `meteor test-packages ./`
+ - Clone this repository:
+
+     $ cd /path/to/parent/directory/
+     $ git clone meteor https://github.com/blackslate/ostrio-neo4jdriver.git
+
+ - Go to package directory and install test-packages. This adds a hidden `.npm` directory containing `packages/node_modules/needle/` and many other supporting directories and files. It will then launch the demo app, and run any tests stored in test.coffee at the root of the package directory.:
+
+    $ cd ostrio-neo4jdriver
+    $ meteor test-packages ./
+
+
+
 
 ##### Local usage
 
- - Download (or clone) to local dir
- - **Stop meteor if running**
- - Run ```mrt link-package [*full path to folder with package*]``` in a project dir
- - Then run ```meteor add ostrio:neo4jdriver```
- - Run ```meteor``` in a project dir
- - From now any changes in ostrio:neo4jdriver package folder will cause rebuilding of project app
+To use the ostrio-neo4jdriver in a project and benefit from updates to the driver as they are released, you can keep your project and the driver in separate directories, and create a symlink between them.
+
+ - Download (or clone) this repository to a local directory
+
+     $ cd /path/to/parent/directory/
+     $ git clone meteor https://github.com/blackslate/ostrio-neo4jdriver.git
+
+ - **Stop meteor if it is running**
+ - If you don't already have a Meteor project, create a new one:
+
+    $ meteor create MyProject
+
+ - Change into your project directory:
+
+    $ cd MyProject
+
+ - Create a symlink from your project folder to the ostrio-neo4jdriver package folder. Use the correct path for your own environment, instead of `/path/to/`.
+
+     $ mrt link-package /path/to/ostrio-neo4jdriver
+
+** NOTE: This requires Meteorite. [Here's how to install it](https://github.com/oortcloud/meteorite#installing-meteorite). An alternative that does not require Meteorite is to execute the following command, again with the correct path instead of `/path/to/`:
+
+ - $ mkdir -p packages && ln -s /path/to/ostrio-neo4jdriver packages/ostrio-neo4jdriver
+
+ - Then run:
+
+    $ meteor add ostrio:neo4jdriver
+    $ meteor
+
+ From now any changes in ostrio:neo4jdriver package folder will cause your project app to rebuild.
