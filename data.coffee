@@ -17,9 +17,7 @@ class Neo4jData
         @update()._node
       else
         @_node
-    set: (newVal) -> 
-      unless EJSON.equals @_node, newVal
-        @_node = newVal 
+    set: (newVal) -> @_node = newVal unless EJSON.equals @_node, newVal
 
   ###
   @locus Server
