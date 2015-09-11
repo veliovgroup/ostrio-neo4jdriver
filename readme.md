@@ -328,8 +328,8 @@ $ git clone meteor https://github.com/blackslate/ostrio-neo4jdriver.git
 ```
  - **Stop meteor if it is running**
  - If you don't already have a Meteor project, create a new one:
- ```
- $ meteor create MyProject
+```
+$ meteor create MyProject
 ```
  - Change into your project directory:
 ```
