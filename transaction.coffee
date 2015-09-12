@@ -69,8 +69,7 @@ class Neo4jTransaction
     unless error
       @_db.__cleanUpResponse response, (result) => @_results.push new Neo4jCursor @_db.__transformData result, reactive
     else
-      console.error error
-      console.trace()
+      __error new Error error
 
   ###
   @locus Server
