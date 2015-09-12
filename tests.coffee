@@ -677,7 +677,7 @@ Tinytest.addAsync 'db.batch [With custom ID] [ASYNC]', (test, completed) ->
 ###
 @test 
 @description Check batch ASYNC
-db.batch(tasks, undefined, false, true)
+db.batch(tasks, {plain: true}, false, true)
 ###
 Tinytest.add 'db.batch [With custom ID] [no data transform (plain)]', (test) ->
   batch = db.batch [
@@ -694,7 +694,7 @@ Tinytest.add 'db.batch [With custom ID] [no data transform (plain)]', (test) ->
     ,
       method: "POST"
       to: db.__service.cypher.endpoint
-      body: query: "MATCH (n:BatchTestPlain) DELETE n"], undefined, false, true
+      body: query: "MATCH (n:BatchTestPlain) DELETE n"], plain: true
 
   test.equal batch.length, 3
   for res in batch
@@ -709,7 +709,7 @@ Tinytest.add 'db.batch [With custom ID] [no data transform (plain)]', (test) ->
 ###
 @test 
 @description Check batch ASYNC REACTIVE
-db.batch(tasks, undefined, true)
+db.batch(tasks, {reactive: true}, true)
 ###
 Tinytest.add 'db.batch [With custom ID] [REACTIVE]', (test) ->
   batch = db.batch [
@@ -722,7 +722,7 @@ Tinytest.add 'db.batch [With custom ID] [REACTIVE]', (test) ->
       method: "POST"
       to: db.__service.cypher.endpoint
       body: query: "MATCH (n:BatchTestReactive) RETURN n"
-      id: 999], undefined, true
+      id: 999], reactive: true
 
   test.equal batch.length, 2
   for res in batch
