@@ -34,15 +34,15 @@ class Neo4jNode extends Neo4jData
           body: properties
         , 
           (error, node) =>
-            console.error error if error
+            __error error if error
             if node?.metadata
               @emit 'ready', node, fut
             else
-              console.error "Node is not created or created wrongly, metadata is not returned!"
+              __error "Node is not created or created wrongly, metadata is not returned!"
         , @_isReactive, true
         return
       else
-        console.error "You already in node instance, create new one by calling, `db.nodes().create()`"
+        __error "You already in node instance, create new one by calling, `db.nodes().create()`"
         fut.return @
 
     @on 'apply', =>
