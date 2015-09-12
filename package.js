@@ -1,6 +1,6 @@
 Package.describe({
   name: 'ostrio:neo4jdriver',
-  summary: 'Meteor.js node-neo4j wrapper to be used with meteor applications (a.k.a. neo4j Connector)',
+  summary: 'Neo4j REST API client, with support of https and GrapheneDB',
   version: '1.0.0',
   git: 'https://github.com/VeliovGroup/ostrio-neo4jdriver.git'
 });
