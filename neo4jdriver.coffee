@@ -65,8 +65,7 @@ class Neo4jDB
         unless error
           @__cleanUpResponse response, (result) => @__proceedResult result
         else
-          console.error error
-          console.trace()
+          __error new Error error
 
   __cleanUpResponse: (response, cb) ->
     if response?.data and _.isObject response.data
@@ -75,13 +74,11 @@ class Neo4jDB
       try
         @__cleanUpResults JSON.parse(response.content), cb
       catch error
-        console.error "Neo4j response error (Check your cypher queries):", [response.statusCode], error
-        console.error "Original received data:"
+        __error "Neo4j response error (Check your cypher queries):", [response.statusCode], error
+        __error "Originally received data:"
         console.log response.content
-        console.trace()
     else
-      console.error "Empty response from Neo4j, but expecting data"
-      console.trace()
+      __error "Empty response from Neo4j, but expecting data"
 
   __cleanUpResults: (results, cb) ->
     if results?.results or results?.errors
@@ -89,7 +86,7 @@ class Neo4jDB
       results = results?.results
 
     unless _.isEmpty errors
-      console.error error.code, error.message for error in errors
+      __error error.code, error.message for error in errors
     else if not _.isEmpty results
       cb result for result in results
 
@@ -99,8 +96,8 @@ class Neo4jDB
         @emit result.id, null, result.body, result.id
       else
         for error in result.body.errors
-          console.error error.message
-          console.error {code: error.code}
+          __error error.message
+          __error {code: error.code}
         @emit result.id, error?.message, [], result.id
     else
       @emit result.id, null, [], result.id
@@ -124,26 +121,27 @@ class Neo4jDB
         bound => callback error, if noTransform then response else @__transformData _.clone(response), reactive
 
   __connect: -> 
-    response = @__call @root
-    if response?.statusCode
-      switch response.statusCode
-        when 200
-          if response.data.password_change_required
-            throw new Error "To connect to Neo4j - password change is required, please proceed to #{response.data.password_change}"
+    # response = @__call @root
+    @__call @root, {}, 'GET', (error, response) =>
+      if response?.statusCode
+        switch response.statusCode
+          when 200
+            if response.data.password_change_required
+              throw new Error "To connect to Neo4j - password change is required, please proceed to #{response.data.password_change}"
+            else
+              for key, endpoint of response.data
+                if _.isString endpoint
+                  if !!~endpoint.indexOf '://'
+                    @__service[key] = new Neo4jEndpoint key, endpoint, @
+                  else
+                    @__service[key] = get: -> endpoint
+                  __success "v#{endpoint}" if key is "neo4j_version"
+              @emit 'ready'
+              __success "Successfully connected to Neo4j on #{@url}"
           else
-            for key, endpoint of response.data
-              if _.isString endpoint
-                if !!~endpoint.indexOf '://'
-                  @__service[key] = new Neo4jEndpoint key, endpoint, @
-                else
-                  @__service[key] = get: -> endpoint
-                console.success "v#{endpoint}" if key is "neo4j_version"
-            @emit 'ready'
-            console.success "Successfully connected to Neo4j on #{@url}"
-        else
-          throw new Error JSON.stringify response
-    else
-      throw new Error "Error with connection to Neo4j"
+            throw new Error JSON.stringify response
+      else
+        throw new Error "Error with connection to Neo4j"
 
   __call: (url, options = {}, method = 'GET', callback) ->
     check url, String
@@ -186,9 +184,8 @@ class Neo4jDB
       else
         return request method, url, options.data, options, callback
     catch error
-      console.error "Error sending request to Neo4j (GrapheneDB) server:"
-      console.error error
-      console.trace()
+      __error "Error sending request to Neo4j (GrapheneDB) server:"
+      __error new Error error
 
   __parseNode: (currentNode) ->
     if currentNode?.metadata or currentNode?.data
@@ -263,7 +260,7 @@ class Neo4jDB
           parsed = parsed.concat @__parseResponse result.data, result.columns, reactive
         return parsed
       else
-        console.error response.exception
+        __error response.exception
 
     if response?.columns and response?.data
       unless _.isEmpty response.data
@@ -280,7 +277,7 @@ class Neo4jDB
     unless callback
       return __wait (fut) =>
         @__batch task, (error, data) ->
-          console.error error if error
+          __error error if error
           fut.return new Neo4jCursor data
         , reactive
     else
@@ -514,12 +511,21 @@ class Neo4jDB
   @param {String}   tasks.$.to - Endpoint (URL) for task
   @param {Number}   tasks.$.id - [Optional] Unique id to identify task. Should be always unique!
   @param {Object}   tasks.$.body - [Optional] JSONable object which will be sent as data to task
-  @param {Function} callback - callback function, if present `batch()` method will be called asynchronously
-  @param {Boolean}  reactive - if `true` and if `plain` is true data of node(s) will be updated before returning
-  @param {Boolean}  plain - if `true`, results will be returned as simple objects instead of Neo4jCursor
+  @param {Object}   settings
+  @param {Boolean}  settings.reactive - if `true` and if `plain` is true data of node(s) will be updated before returning
+  @param {Boolean}  settings.plain - if `true`, results will be returned as simple objects instead of Neo4jCursor
   @returns {[Object]} - array of Neo4jCursor(s) or array of Object id `plain` is `true`
   ###
-  batch: (tasks, callback, reactive = false, plain = false) ->
+  batch: (tasks, settings = {}, callback) ->
+    if _.isFunction settings
+      callback = settings
+      settings = {}
+    else
+      {reactive, plain} = settings
+
+    reactive ?= false
+    plain ?= false
+
     check tasks, [Object]
     check callback, Match.Optional Function
     check reactive, Boolean
