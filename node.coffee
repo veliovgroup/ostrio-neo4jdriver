@@ -364,3 +364,64 @@ class Neo4jNode extends Neo4jData
     return @__return (fut) -> 
       @update()
       fut.return @_node.metadata.labels
+
+  ###
+  @locus Server
+  @summary Return the (all | out | in) number of relationships associated with a node.
+  @name degree
+  @class Neo4jNode
+  @url http://neo4j.com/docs/2.2.5/rest-api-node-degree.html#rest-api-get-the-degree-of-a-node
+  @param {String} direction - Direction of relationships to count, one of: `all`, `out` or `in`. Default: `all`
+  @param {[String]} types - Types (labels) of relationship as array
+  @returns {Number}
+  ###
+  degree: (direction = 'all', types = []) ->
+    check direction, String
+    check types, Match.Optional [String]
+    @__return (fut) ->
+      @_db.__batch 
+        method: 'GET'
+        to: @_node._service.self.endpoint + '/degree/' + direction + '/' + types.join('&')
+      , 
+        (error, result) => fut.return if result.length is 0 then 0 else result
+      , false, true
+
+  ###
+  @locus Server
+  @summary Create relationship from current node to another
+  @name to
+  @class Neo4jNode
+  @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-create-a-relationship-with-properties
+  @param {Number | Object | Neo4jNode} to - id or instance of node
+  @param {String} type - Type (label) of relationship
+  @param {Object} properties - Relationship's properties
+  @param {Boolean} properties._reactive - Set Neo4jRelationship instance to reactive mode
+  @returns {Neo4jRelationship}
+  ###
+  to: (to, type, properties = {}) ->
+    to = to?.id or to?.get?().id if _.isObject to
+    check to, Number
+    check type, String
+    check properties, Object
+
+    @_db.createRelation @_id, to, type, properties
+
+  ###
+  @locus Server
+  @summary Create relationship to current node from another
+  @name from
+  @class Neo4jNode
+  @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-create-a-relationship-with-properties
+  @param {Number | Object | Neo4jNode} from - id or instance of node
+  @param {String} type - Type (label) of relationship
+  @param {Object} properties - Relationship's properties
+  @param {Boolean} properties._reactive - Set Neo4jRelationship instance to reactive mode
+  @returns {Neo4jRelationship}
+  ###
+  from: (from, type, properties = {}) ->
+    from = from?.id or from?.get?().id if _.isObject from
+    check from, Number
+    check type, String
+    check properties, Object
+
+    @_db.createRelation from, @_id, type, properties

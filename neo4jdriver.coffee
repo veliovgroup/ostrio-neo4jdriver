@@ -198,10 +198,10 @@ class Neo4jDB
 
       if currentNode?['start']
         paths = currentNode.start.split '/'
-        nodeData.start = paths[paths.length - 1]
+        nodeData.start = parseInt paths[paths.length - 1]
       if currentNode?['end']
         paths = currentNode.end.split '/'
-        nodeData.end = paths[paths.length - 1]
+        nodeData.end = parseInt paths[paths.length - 1]
 
       return _.extend node, nodeData
     else
@@ -595,3 +595,58 @@ class Neo4jDB
   @returns {Neo4jNode} - Neo4jNode instance
   ###
   nodes: (id, reactive) -> new Neo4jNode @, id, reactive
+
+  ###
+  @locus Server
+  @summary Create relationship between two nodes
+  @name createRelation
+  @class Neo4jDB
+  @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-create-a-relationship-with-properties
+  @param {Number | Object | Neo4jNode} from - id or instance of node
+  @param {Number | Object | Neo4jNode} to - id or instance of node
+  @param {String} type - Type (label) of relationship
+  @param {Object} properties - Relationship's properties
+  @param {Boolean} properties._reactive - Set Neo4jRelationship instance to reactive mode
+  @returns {Neo4jRelationship}
+  ###
+  createRelation: (from, to, type, properties = {}) ->
+    from = from?.id or from?.get?().id if _.isObject from
+    to = to?.id or to?.get?().id if _.isObject to
+    check from, Number
+    check to, Number
+    check type, String
+    check properties, Object
+
+    if properties?._reactive
+      reactive = properties._reactive
+      delete properties._reactive
+
+    reactive ?= false
+
+    check reactive, Boolean
+
+    relationship = @__batch 
+      method: 'POST'
+      to: @__service.node.endpoint + '/' + from + '/relationships'
+      body: 
+        to: @__service.node.endpoint + '/' + to
+        type: type
+        data: properties
+    , undefined, reactive, true
+
+    new Neo4jRelationship @, relationship, reactive
+
+  ###
+  @locus Server
+  @summary Get relationship object, by id
+  @name getRelation
+  @class Neo4jDB
+  @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-get-relationship-by-id
+  @param {Number} to - id or instance of node
+  @param {Boolean} reactive - Set Neo4jRelationship instance to reactive mode
+  @returns {Neo4jRelationship}
+  ###
+  getRelation: (id, reactive) -> 
+    check id, Number
+    check reactive, Match.Optional Boolean
+    new Neo4jRelationship @, id, reactive

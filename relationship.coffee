@@ -32,10 +32,10 @@ class Neo4jRelationship extends Neo4jData
       return
 
     if _.isObject @_id
-      if _.has @_id, 'startNode'
+      if @_id?.startNode or @_id?.start
         @emit 'ready', @_id
       else
-        __error "Relationship is not created or created wrongly, `startNode` is not returned!"
+        __error "Relationship is not created or created wrongly, `startNode` or `start` is not returned!"
     else if _.isNumber @_id
       @_db.__batch method: 'GET', to: '/relationship/' + @_id, (error, relationship) =>
         @emit 'ready', relationship
@@ -52,6 +52,25 @@ class Neo4jRelationship extends Neo4jData
   @returns {Object}
   ###
   get: -> @__return (fut) -> fut.return super
+
+  ###
+  @locus Server
+  @summary Delete relationship
+  @name delete
+  @class Neo4jRelationship
+  @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-delete-relationship
+  @returns {undefined}
+  ###
+  delete: ->
+    @__return (fut) -> 
+      @_db.__batch 
+        method: 'DELETE'
+        to: @_node._service.self.endpoint
+      , 
+        =>
+          @node = undefined
+          fut.return undefined
+      , undefined, true
 
   ###
   @locus Server

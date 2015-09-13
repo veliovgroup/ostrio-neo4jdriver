@@ -145,6 +145,30 @@ __nodesInstanceCRC__ = (test, node) ->
   test.isTrue _.isFunction node.__refresh
   test.isTrue _.isFunction node.update
 
+__relationCRC__ = (test, r, from, to, type, props = {}) ->
+    test.instanceOf r, Neo4jRelationship
+    test.isTrue _.isFunction r.get
+    test.isTrue _.isFunction r.delete
+    test.isTrue _.isFunction r.update
+    test.isTrue _.isFunction r.__refresh
+
+    _r = r.get()
+    test.isTrue _.has _r, 'id'
+    test.isTrue _.has _r, 'metadata'
+    test.isTrue _.has _r, 'type'
+    test.isTrue _.has _r, 'start'
+    test.isTrue _.has _r, 'end'
+
+    test.isTrue _r.type is type
+
+    if props
+      for key, value of props
+        test.isTrue _.has _r, key
+        test.equal _r[key], value
+
+    test.equal _r.start, from if from
+    test.equal _r.end, to if to
+
 Tinytest.add 'service endpoints', (test) ->
   test.isTrue _.isArray db.propertyKeys()
   test.isTrue _.isArray db.labels()
@@ -173,23 +197,17 @@ query: (cypher, opts = {}) ->
 Tinytest.add 'db.query [SYNC]', (test) -> __SyncTest__ test, 'query'
 
 ###
-Any idea how to test this one?
-It throws an exception inside driver
+@test 
+@description Passing wrong Cypher query, returns empty cursor, and prints an error to console
+query: (cypher, callback) ->
 ###
-# Tinytest.add 'db.query [Wrong cypher] [SYNC] (You will see errors at server console)', (test) ->
-#   test.expect_fail()
-#   test.throws db.query("MATCh (n:) RETRN n"), 
-#     """
-# "MATCh (n:) RETRN n"
-#           ^  
-#   { code: 'Neo.ClientError.Statement.InvalidSyntax' }  
-#   Invalid input ')': expected whitespace or a label name (line 1, column 10 (offset: 9))
-#     """
+Tinytest.add 'db.query [Wrong cypher] [SYNC] (You will see errors at server console)', (test) ->
+  test.equal db.query("MATCh (n:) RETRN n").fetch(), []
 
 
 ###
 @test 
-@description Passing wrong Cypher query
+@description Passing wrong Cypher query, returns error and prints an error to console
 query: (cypher, callback) ->
 ###
 Tinytest.addAsync 'db.query [Wrong cypher] [ASYNC] (You will see errors at server console)', (test, completed) ->
@@ -604,6 +622,7 @@ Tinytest.addAsync 'db.graph', (test, completed) ->
     test.isTrue _.has n, 'nodes'
     test.equal n.nodes.length, 2
     test.equal n.relationships.length, 1
+
     if i is graph.length
       db.querySync "MATCH (a:FirstTest)-[r:KNOWS]->(b:SecondTest), (a:FirstTest)-[r2:WorkWith]->(c:ThirdTest), (c:ThirdTest)-[r3:KNOWS]->(b:SecondTest) DELETE r, r2, r3"
       db.queryAsync "MATCH (a:FirstTest), (b:SecondTest), (c:ThirdTest) DELETE a, b, c"
@@ -1433,6 +1452,215 @@ Tinytest.add 'db.nodes create / labels / delete [SET / GET] [REACTIVE]', (test) 
   __nodeCRC__ test, _node.n, ["MyLabel1"], {}
 
   node.delete()
+
+###
+@test 
+@description 
+db.getRelation(id).delete()
+###
+Tinytest.add 'r = db.getRelation / r.delete', (test) ->
+  r = db.queryOne("CREATE (a)-[r:KNOWS {test: true}]->(b) RETURN r").r
+  _r = db.getRelation(r.id)
+  __relationCRC__ test, _r, r.start, r.end, 'KNOWS', {test: true}
+
+  test.equal _r.delete(), undefined
+  test.equal db.nodes(r.start).delete(), undefined
+  test.equal db.nodes(r.end).delete(), undefined
+
+###
+@test 
+@description 
+db.getRelation(id, true).delete()
+###
+Tinytest.add 'r = db.getRelation / r.delete [REACTIVE]', (test) ->
+  r = db.queryOne("CREATE (a)-[r:KNOWS {test: true}]->(b) RETURN r").r
+  _r = db.getRelation(r.id, true)
+
+  db.querySync "MATCH ()-[r]-() WHERE id(r) = {id} SET r.newProp = 'rrrreactive!'", {id: _r.get().id}
+
+  __relationCRC__ test, _r, r.start, r.end, 'KNOWS', {test: true, newProp: 'rrrreactive!'}
+
+  test.equal _r.delete(), undefined
+  test.equal db.nodes(r.start).delete(), undefined
+  test.equal db.nodes(r.end).delete(), undefined
+
+###
+@test 
+@description 
+db.createRelation(db.nodes(), db.nodes()).delete()
+###
+Tinytest.add 'r = db.createRelation / r.delete', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = db.createRelation n1, n2, 'KNOWS', {test: true}
+
+  __relationCRC__ test, r, n1.get().id, n2.get().id, 'KNOWS', {test: true}
+  test.equal r.delete(), undefined
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+###
+@test 
+@description 
+db.createRelation(db.nodes(), db.nodes()).delete()
+###
+Tinytest.add 'r = db.createRelation / r.delete [NoProps]', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = db.createRelation n1, n2, 'KNOWS'
+
+  __relationCRC__ test, r, n1.get().id, n2.get().id, 'KNOWS', {}
+  test.equal r.delete(), undefined
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+###
+@test 
+@description 
+db.createRelation(db.nodes(), db.nodes(), {_reactive: true}).delete()
+###
+Tinytest.add 'r = db.createRelation / r.delete [REACTIVE]', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = db.createRelation n1, n2, 'KNOWS', _reactive: true
+
+  test.equal n1.degree(), 1
+  test.equal n2.degree(), 1
+  db.querySync "MATCH ()-[r]-() WHERE id(r) = {id} SET r.newProp = 'rrrreactive!'", {id: r.get().id}
+
+  __relationCRC__ test, r, n1.get().id, n2.get().id, 'KNOWS', {newProp: 'rrrreactive!'}
+  test.equal r.delete(), undefined
+  test.equal n1.degree(), 0
+  test.equal n2.degree(), 0
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+###
+@test 
+@description 
+db.node().to(node2).delete()
+###
+Tinytest.add 'Create relationship db.node().to(node2) / r.delete', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = n1.to n2, 'KNOWS', foo: 'bar'
+
+  test.equal n1.degree(), 1
+  test.equal n2.degree(), 1
+
+  __relationCRC__ test, r, n1.get().id, n2.get().id, 'KNOWS', {foo: 'bar'}
+  test.equal r.delete(), undefined
+  test.equal n1.degree(), 0
+  test.equal n2.degree(), 0
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+###
+@test 
+@description 
+db.node().from(node2).delete()
+###
+Tinytest.add 'Create relationship db.node().from(node2) / r.delete', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = n1.from n2, 'KNOWS', foo: 'bar'
+
+  test.equal n1.degree(), 1
+  test.equal n2.degree(), 1
+
+  __relationCRC__ test, r, n2.get().id, n1.get().id, 'KNOWS', {foo: 'bar'}
+  test.equal r.delete(), undefined
+  test.equal n1.degree(), 0
+  test.equal n2.degree(), 0
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+###
+@test 
+@description 
+db.node().to(node2).delete()
+###
+Tinytest.add 'Create relationship db.node().to(node2) / r.delete [REACTIVE]', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = n1.to n2, 'KNOWS', {foo: 'bar', _reactive: true}
+
+  test.equal n1.degree(), 1
+  test.equal n2.degree(), 1
+
+  db.querySync "MATCH ()-[r]-() WHERE id(r) = {id} SET r.newProp = 'rrrreactive!'", {id: r.get().id}
+
+  __relationCRC__ test, r, n1.get().id, n2.get().id, 'KNOWS', {foo: 'bar', newProp: 'rrrreactive!'}
+  test.equal r.delete(), undefined
+  test.equal n1.degree(), 0
+  test.equal n2.degree(), 0
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+###
+@test 
+@description 
+db.node().from(node2).delete()
+###
+Tinytest.add 'Create relationship db.node().from(node2) / r.delete [REACTIVE]', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = n1.from n2, 'KNOWS', {foo: 'bar', _reactive: true}
+
+  test.equal n1.degree(), 1
+  test.equal n2.degree(), 1
+
+  db.querySync "MATCH ()-[r]-() WHERE id(r) = {id} SET r.newProp = 'rrrreactive!'", {id: r.get().id}
+
+  __relationCRC__ test, r, n2.get().id, n1.get().id, 'KNOWS', {foo: 'bar', newProp: 'rrrreactive!'}
+  test.equal r.delete(), undefined
+  test.equal n1.degree(), 0
+  test.equal n2.degree(), 0
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+###
+@test 
+@description Check nodes fetching / getting degree / deletion
+db.nodes(id).degree().delete()
+###
+Tinytest.add 'db.nodes.degree()', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  n3 = db.nodes()
+
+  r1 = n1.to n2, 'KNOWS'
+  r2 = n1.to n3, 'FOLLOWS'
+  r3 = n3.to n1, 'FOLLOWS'
+  r4 = n2.from n3, 'KNOWS'
+
+  __relationCRC__ test, r1, n1.get().id, n2.get().id, 'KNOWS', {}
+  __relationCRC__ test, r2, n1.get().id, n3.get().id, 'FOLLOWS', {}
+  __relationCRC__ test, r3, n3.get().id, n1.get().id, 'FOLLOWS', {}
+  __relationCRC__ test, r4, n3.get().id, n2.get().id, 'KNOWS', {}
+
+  test.equal n1.degree(), 3, "n1 all"
+  test.equal n1.degree('all'), 3, "n1 all"
+  test.equal n1.degree('out'), 2, "n1 out"
+  test.equal n1.degree('in'), 1, "n1 in"
+
+  test.equal n2.degree(), 2, "n2 all"
+  test.equal n2.degree('all'), 2, "n2 all"
+  test.equal n2.degree('out'), 0, "n2 out"
+  test.equal n2.degree('in'), 2, "n2 in"
+
+  test.equal n3.degree(), 3, "n3 all"
+  test.equal n3.degree('all'), 3, "n3 all"
+  test.equal n3.degree('out'), 2, "n3 out"
+  test.equal n3.degree('in'), 1, "n3 in"
+
+  test.equal r1.delete(), undefined
+  test.equal r2.delete(), undefined
+  test.equal r3.delete(), undefined
+  test.equal r4.delete(), undefined
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+  test.equal n3.delete(), undefined
 
 
 
