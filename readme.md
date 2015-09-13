@@ -302,19 +302,6 @@ cursor.each (node) ->
 
 -----
 #### Testing & Dev usage
-##### Testing
- - Clone this repository:
-```
-$ cd /path/to/parent/directory/
-$ git clone meteor https://github.com/blackslate/ostrio-neo4jdriver.git
-```
- - Go to package directory and install test-packages. This adds a hidden `.npm` directory containing `packages/node_modules/needle/` and many other supporting directories and files. It will then launch the demo app, and run any tests stored in test.coffee at the root of the package directory.:
-```
-$ cd ostrio-neo4jdriver
-$ meteor test-packages ./
-```
-
-
 
 ##### Local usage
 
@@ -341,7 +328,7 @@ $ meteor add ostrio:neo4jdriver
 From now any changes in ostrio:neo4jdriver package folder will cause your project app to rebuild.
 
 
-###### To run tests:
+##### To run tests:
 ```shell
 # Go to local package folder
 $ cd packages/ostrio-neo4jdriver
