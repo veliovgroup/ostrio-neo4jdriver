@@ -11,6 +11,7 @@ Package.onUse(function(api) {
     'helpers.coffee',
     'cursor.coffee',
     'data.coffee',
+    'relationship.coffee',
     'node.coffee',
     'endpoint.coffee',
     'transaction.coffee',
@@ -19,6 +20,7 @@ Package.onUse(function(api) {
 
   api.export([
     'Neo4jCursor',
+    'Neo4jRelationship',
     'Neo4jNode',
     'Neo4jData',
     'Neo4jEndpoint',

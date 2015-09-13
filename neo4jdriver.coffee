@@ -76,7 +76,6 @@ class Neo4jDB
       catch error
         __error "Neo4j response error (Check your cypher queries):", [response.statusCode], error
         __error "Originally received data:"
-        console.log response.content
     else
       __error "Empty response from Neo4j, but expecting data"
 
@@ -118,10 +117,10 @@ class Neo4jDB
             fut.return if noTransform then response else @__transformData _.clone(response), reactive
     else
       @once task.id, (error, response) =>
-        bound => callback error, if noTransform then response else @__transformData _.clone(response), reactive
+        bound => 
+          callback error, if noTransform then response else @__transformData _.clone(response), reactive
 
   __connect: -> 
-    # response = @__call @root
     @__call @root, {}, 'GET', (error, response) =>
       if response?.statusCode
         switch response.statusCode
@@ -218,8 +217,8 @@ class Neo4jDB
         for key, value of result.graph
           if _.isArray(value) and value.length > 0
             for n in value
-              node.nodes.push new Neo4jData(@__parseNode(n), reactive) if key is 'nodes'
-              node.relationships.push new Neo4jData(@__parseNode(n), reactive) if key is 'relationships'
+              node.nodes.push new Neo4jData @__parseNode(n), reactive if key is 'nodes'
+              node.relationships.push new Neo4jRelationship @, n, reactive if key is 'relationships'
 
       if result?.row
         row = 
@@ -239,7 +238,10 @@ class Neo4jDB
       if row.node?[index]
         if _.isObject row.node[index]
           if row.isRest
-            node[column] = new Neo4jNode @, row.node[index], reactive
+            if row.node[index]?.start and row.node[index]?.end
+              node[column] = new Neo4jRelationship @, row.node[index], reactive
+            else
+              node[column] = new Neo4jNode @, row.node[index], reactive
           else
             node[column] = new Neo4jData row.node[index], false
         else
@@ -269,7 +271,11 @@ class Neo4jDB
         return []
 
     if response?.data and response?.metadata
-      return new Neo4jData @__parseNode(response), if response?.self then reactive else false
+      n = @__parseNode(response)
+      if n?.start and n?.end
+        return new Neo4jRelationship @, n, if response?.self then reactive else false
+      else
+        return new Neo4jData n, if response?.self then reactive else false
     
     return new Neo4jData response
 
@@ -338,7 +344,8 @@ class Neo4jDB
     data = @__batch
       method: "GET"
       to: "/propertykeys"
-    data = data.get() if _.isFunction data.get
+    , undefined, false, true
+    data = data.get() if _.isFunction data?.get
     return data
 
   ###

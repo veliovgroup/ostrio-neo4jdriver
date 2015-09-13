@@ -21,6 +21,5 @@ Function::define = (name, getSet) -> Object.defineProperty @prototype, name, get
 @Future = Npm.require 'fibers/future'
 @__wait = (cb) -> 
   fut = new Future()
-  process.nextTick -> bound -> cb fut
+  cb fut
   return fut.wait()
-
