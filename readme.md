@@ -320,28 +320,32 @@ $ meteor test-packages ./
 
 To use the ostrio-neo4jdriver in a project and benefit from updates to the driver as they are released, you can keep your project and the driver in separate directories, and create a symlink between them.
 
- - Download (or clone) this repository to a local directory
-
-```
-$ cd /path/to/parent/directory/
-$ git clone meteor https://github.com/blackslate/ostrio-neo4jdriver.git
-```
- - **Stop meteor if it is running**
- - If you don't already have a Meteor project, create a new one:
-```
+```shell
+# Stop meteor if it is running
+# If you don't have a Meteor project yet, create a new one:
 $ meteor create MyProject
-```
- - Change into your project directory:
-```
+$ cd /directory/of/your/project
 $ cd MyProject
-```
- - Create a symlink from your project folder to the ostrio-neo4jdriver package folder. Use the correct path for your own environment, instead of `/path/to/`.
-```
-$ mkdir -p packages && ln -s /path/to/ostrio-neo4jdriver packages/ostrio-neo4jdriver
-```
- - Now run:
-```
+$ mkdir packages
+$ cd packages
+# Clone this repository to a local `packages` directory
+$ git clone --bare https://github.com/VeliovGroup/ostrio-neo4jdriver.git
+# If you need dev branch, switch into it
+$ git checkout dev
+# Go back into project's directory
+$ cd ../
 $ meteor add ostrio:neo4jdriver
-$ meteor
+# Do not forget to run Neo4j database, before start work with package
 ```
+
 From now any changes in ostrio:neo4jdriver package folder will cause your project app to rebuild.
+
+
+###### To run tests:
+```shell
+# Go to local package folder
+$ cd packages/ostrio-neo4jdriver
+# Edit first line of `tests.coffee` to set connection to your Neo4j database
+# Do not forget to run Neo4j database
+$ meteor test-packages ./
+```
