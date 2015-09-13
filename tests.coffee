@@ -1631,36 +1631,130 @@ Tinytest.add 'db.nodes.degree()', (test) ->
 
   r1 = n1.to n2, 'KNOWS'
   r2 = n1.to n3, 'FOLLOWS'
-  r3 = n3.to n1, 'FOLLOWS'
-  r4 = n2.from n3, 'KNOWS'
+  r3 = n1.to n3, 'LIKES'
+  r4 = n3.to n1, 'FOLLOWS'
+  r5 = n3.to n1, 'HATES'
+  r6 = n2.from n3, 'KNOWS'
+  r7 = n2.from n3, 'MATES'
+  r8 = n2.from n1, 'MATES'
 
   __relationCRC__ test, r1, n1.get().id, n2.get().id, 'KNOWS', {}
   __relationCRC__ test, r2, n1.get().id, n3.get().id, 'FOLLOWS', {}
-  __relationCRC__ test, r3, n3.get().id, n1.get().id, 'FOLLOWS', {}
-  __relationCRC__ test, r4, n3.get().id, n2.get().id, 'KNOWS', {}
+  __relationCRC__ test, r3, n1.get().id, n3.get().id, 'LIKES', {}
+  __relationCRC__ test, r4, n3.get().id, n1.get().id, 'FOLLOWS', {}
+  __relationCRC__ test, r5, n3.get().id, n1.get().id, 'HATES', {}
+  __relationCRC__ test, r6, n3.get().id, n2.get().id, 'KNOWS', {}
+  __relationCRC__ test, r7, n3.get().id, n2.get().id, 'MATES', {}
+  __relationCRC__ test, r8, n1.get().id, n2.get().id, 'MATES', {}
 
-  test.equal n1.degree(), 3, "n1 all"
-  test.equal n1.degree('all'), 3, "n1 all"
-  test.equal n1.degree('out'), 2, "n1 out"
-  test.equal n1.degree('in'), 1, "n1 in"
+  test.equal n1.degree(), 6, "n1 [all]"
+  test.equal n1.degree('all'), 6, "n1 [all]"
+  test.equal n1.degree('out'), 4, "n1 [out]"
+  test.equal n1.degree('in'), 2, "n1 [in]"
 
-  test.equal n2.degree(), 2, "n2 all"
-  test.equal n2.degree('all'), 2, "n2 all"
-  test.equal n2.degree('out'), 0, "n2 out"
-  test.equal n2.degree('in'), 2, "n2 in"
+  test.equal n1.degree('all', ['NotExists']), 0, "n1 [all] [NotExists]"
+  test.equal n1.degree('in', ['NotExists', 'NotExists2']), 0, "n1 [in] [NotExists, NotExists2]"
+  test.equal n1.degree('out', ['NotExists', 'NotExists2']), 0, "n1 [out] [NotExists, NotExists2]"
 
-  test.equal n3.degree(), 3, "n3 all"
-  test.equal n3.degree('all'), 3, "n3 all"
-  test.equal n3.degree('out'), 2, "n3 out"
-  test.equal n3.degree('in'), 1, "n3 in"
+  test.equal n1.degree('all', ['KNOWS']), 1, "n1 [all] [KNOWS]"
+  test.equal n1.degree('in', ['KNOWS']), 0, "n1 [in] [KNOWS]"
+  test.equal n1.degree('out', ['KNOWS']), 1, "n1 [out] [KNOWS]"
+
+  test.equal n1.degree('all', ['KNOWS', 'FOLLOWS']), 3, "n1 [all] [KNOWS, FOLLOWS]"
+  test.equal n1.degree('in', ['KNOWS', 'FOLLOWS']), 1, "n1 [in] [KNOWS, FOLLOWS]"
+  test.equal n1.degree('out', ['KNOWS', 'FOLLOWS']), 2, "n1 [out] [KNOWS, FOLLOWS]"
+
+  test.equal n1.degree('all', ['KNOWS', 'FOLLOWS', 'LIKES']), 4, "n1 [all] [KNOWS, FOLLOWS, LIKES]"
+  test.equal n1.degree('in', ['KNOWS', 'FOLLOWS', 'LIKES']), 1, "n1 [in] [KNOWS, FOLLOWS, LIKES]"
+  test.equal n1.degree('out', ['KNOWS', 'FOLLOWS', 'LIKES']), 3, "n1 [out] [KNOWS, FOLLOWS, LIKES]"
+
+  test.equal n1.degree('all', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES']), 5, "n1 [all] [KNOWS, FOLLOWS, LIKES, HATES]"
+  test.equal n1.degree('in', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES']), 2, "n1 [in] [KNOWS, FOLLOWS, LIKES, HATES]"
+  test.equal n1.degree('out', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES']), 3, "n1 [out] [KNOWS, FOLLOWS, LIKES, HATES]"
+
+  test.equal n1.degree('all', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES', 'MATES']), 6, "n1 [all] [KNOWS, FOLLOWS, LIKES, HATES, MATES]"
+  test.equal n1.degree('in', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES', 'MATES']), 2, "n1 [in] [KNOWS, FOLLOWS, LIKES, HATES, MATES]"
+  test.equal n1.degree('out', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES', 'MATES']), 4, "n1 [out] [KNOWS, FOLLOWS, LIKES, HATES, MATES]"
+
+
+
+
+  test.equal n2.degree(), 4, "n2 [all]"
+  test.equal n2.degree('all'), 4, "n2 [all]"
+  test.equal n2.degree('out'), 0, "n2 [out]"
+  test.equal n2.degree('in'), 4, "n2 [in]"
+
+  test.equal n2.degree('all', ['NotExists']), 0, "n2 [all] [NotExists]"
+  test.equal n2.degree('in', ['NotExists', 'NotExists2']), 0, "n2 [in] [NotExists, NotExists2]"
+  test.equal n2.degree('out', ['NotExists', 'NotExists2']), 0, "n2 [out] [NotExists, NotExists2]"
+
+  test.equal n2.degree('all', ['KNOWS']), 2, "n2 [all] [KNOWS]"
+  test.equal n2.degree('in', ['KNOWS']), 2, "n2 [in] [KNOWS]"
+  test.equal n2.degree('out', ['KNOWS']), 0, "n2 [out] [KNOWS]"
+
+  test.equal n2.degree('all', ['KNOWS', 'FOLLOWS']), 2, "n2 [all] [KNOWS, FOLLOWS]"
+  test.equal n2.degree('in', ['KNOWS', 'FOLLOWS']), 2, "n2 [in] [KNOWS, FOLLOWS]"
+  test.equal n2.degree('out', ['KNOWS', 'FOLLOWS']), 0, "n2 [out] [KNOWS, FOLLOWS]"
+
+  test.equal n2.degree('all', ['KNOWS', 'FOLLOWS', 'LIKES']), 2, "n2 [all] [KNOWS, FOLLOWS, LIKES]"
+  test.equal n2.degree('in', ['KNOWS', 'FOLLOWS', 'LIKES']), 2, "n2 [in] [KNOWS, FOLLOWS, LIKES]"
+  test.equal n2.degree('out', ['KNOWS', 'FOLLOWS', 'LIKES']), 0, "n2 [out] [KNOWS, FOLLOWS, LIKES]"
+
+  test.equal n2.degree('all', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES']), 2, "n2 [all] [KNOWS, FOLLOWS, LIKES, HATES]"
+  test.equal n2.degree('in', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES']), 2, "n2 [in] [KNOWS, FOLLOWS, LIKES, HATES]"
+  test.equal n2.degree('out', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES']), 0, "n2 [out] [KNOWS, FOLLOWS, LIKES, HATES]"
+
+  test.equal n2.degree('all', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES', 'MATES']), 4, "n2 [all] [KNOWS, FOLLOWS, LIKES, HATES, MATES]"
+  test.equal n2.degree('in', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES', 'MATES']), 4, "n2 [in] [KNOWS, FOLLOWS, LIKES, HATES, MATES]"
+  test.equal n2.degree('out', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES', 'MATES']), 0, "n2 [out] [KNOWS, FOLLOWS, LIKES, HATES, MATES]"
+
+
+
+
+
+  test.equal n3.degree(), 6, "n3 all"
+  test.equal n3.degree('all'), 6, "n3 all"
+  test.equal n3.degree('out'), 4, "n3 out"
+  test.equal n3.degree('in'), 2, "n3 in"
+
+  test.equal n3.degree('all', ['NotExists']), 0, "n3 [all] [NotExists]"
+  test.equal n3.degree('in', ['NotExists', 'NotExists2']), 0, "n3 [in] [NotExists, NotExists2]"
+  test.equal n3.degree('out', ['NotExists', 'NotExists2']), 0, "n3 [out] [NotExists, NotExists2]"
+  
+  test.equal n3.degree('all', ['NotExists']), 0, "n3 [all] [NotExists]"
+  test.equal n3.degree('in', ['NotExists', 'NotExists2']), 0, "n3 [in] [NotExists, NotExists2]"
+  test.equal n3.degree('out', ['NotExists', 'NotExists2']), 0, "n3 [out] [NotExists, NotExists2]"
+
+  test.equal n3.degree('all', ['KNOWS']), 1, "n3 [all] [KNOWS]"
+  test.equal n3.degree('in', ['KNOWS']), 0, "n3 [in] [KNOWS]"
+  test.equal n3.degree('out', ['KNOWS']), 1, "n3 [out] [KNOWS]"
+
+  test.equal n3.degree('all', ['KNOWS', 'FOLLOWS']), 3, "n3 [all] [KNOWS, FOLLOWS]"
+  test.equal n3.degree('in', ['KNOWS', 'FOLLOWS']), 1, "n3 [in] [KNOWS, FOLLOWS]"
+  test.equal n3.degree('out', ['KNOWS', 'FOLLOWS']), 2, "n3 [out] [KNOWS, FOLLOWS]"
+
+  test.equal n3.degree('all', ['KNOWS', 'FOLLOWS', 'LIKES']), 4, "n3 [all] [KNOWS, FOLLOWS, LIKES]"
+  test.equal n3.degree('in', ['KNOWS', 'FOLLOWS', 'LIKES']), 2, "n3 [in] [KNOWS, FOLLOWS, LIKES]"
+  test.equal n3.degree('out', ['KNOWS', 'FOLLOWS', 'LIKES']), 2, "n3 [out] [KNOWS, FOLLOWS, LIKES]"
+
+  test.equal n3.degree('all', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES']), 5, "n3 [all] [KNOWS, FOLLOWS, LIKES, HATES]"
+  test.equal n3.degree('in', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES']), 2, "n3 [in] [KNOWS, FOLLOWS, LIKES, HATES]"
+  test.equal n3.degree('out', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES']), 3, "n3 [out] [KNOWS, FOLLOWS, LIKES, HATES]"
+
+  test.equal n3.degree('all', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES', 'MATES']), 6, "n3 [all] [KNOWS, FOLLOWS, LIKES, HATES, MATES]"
+  test.equal n3.degree('in', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES', 'MATES']), 2, "n3 [in] [KNOWS, FOLLOWS, LIKES, HATES, MATES]"
+  test.equal n3.degree('out', ['KNOWS', 'FOLLOWS', 'LIKES', 'HATES', 'MATES']), 4, "n3 [out] [KNOWS, FOLLOWS, LIKES, HATES, MATES]"
 
   test.equal r1.delete(), undefined
   test.equal r2.delete(), undefined
   test.equal r3.delete(), undefined
   test.equal r4.delete(), undefined
+  test.equal r5.delete(), undefined
+  test.equal r6.delete(), undefined
+  test.equal r7.delete(), undefined
+  test.equal r8.delete(), undefined
   test.equal n1.delete(), undefined
   test.equal n2.delete(), undefined
   test.equal n3.delete(), undefined
-
 
 
