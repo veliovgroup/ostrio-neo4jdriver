@@ -150,7 +150,10 @@ class Neo4jCursor
     check callback, Function
     for row, rowId in @cursor
       data = {}
-      if _.isObject row
+
+      if _.isFunction row?.get
+        data = row.get()
+      else if _.isObject row
         for nodeAlias, node of row
 
           if nodeAlias is 'nodes'

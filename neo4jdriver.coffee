@@ -271,12 +271,28 @@ class Neo4jDB
         return []
 
     if response?.data and response?.metadata
-      n = @__parseNode(response)
-      if n?.start and n?.end
-        return new Neo4jRelationship @, n, if response?.self then reactive else false
+      if response?.start and response?.end
+        return new Neo4jRelationship @, response, if response?.self then reactive else false
+      else if response?.self
+        return new Neo4jNode @, response, if response?.self then reactive else false
       else
-        return new Neo4jData n, if response?.self then reactive else false
-    
+        return new  Neo4Data @__parseNode(response), if response?.self then reactive else false
+
+    if _.isArray(response) and response.length > 0
+      result = []
+      hasData = false
+      for row in response
+        if _.isObject(row) and (row?.data or row?.metadata)
+          hasData = true
+          if row?.start and row?.end
+            result.push new Neo4jRelationship @, row, if row?.self then reactive else false
+          else if row?.self
+            result.push new Neo4jNode @, row, if row?.self then reactive else false
+          else
+            result.push new Neo4Data @__parseNode(row), if row?.self then reactive else false
+
+      return result if hasData
+
     return new Neo4jData response
 
   __getCursor: (task, callback, reactive) ->
