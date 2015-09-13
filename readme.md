@@ -367,7 +367,7 @@ If you created a JS file in the optional step, then you should see the following
 => Started your app.                          
 
 => App running at: http://localhost:3000/
-<timestamp> Meteor.startup. Neo4jDB is a function
+<timestamp> Meteor.startup: Neo4jDB is a function
 ```
 This last line shows that the ostrio-neo4jdriver is correctly installed and initialized.
 
