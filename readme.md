@@ -309,10 +309,11 @@ To use the ostrio-neo4jdriver in a project and benefit from updates to the drive
 
 ```shell
 # Stop meteor if it is running
+$ cd /directory/of/your/project
 # If you don't have a Meteor project yet, create a new one:
 $ meteor create MyProject
-$ cd /directory/of/your/project
 $ cd MyProject
+# Create `packages` directory inside project's dir
 $ mkdir packages
 $ cd packages
 # Clone this repository to a local `packages` directory
