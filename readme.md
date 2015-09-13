@@ -302,27 +302,13 @@ cursor.each (node) ->
 
 -----
 #### Testing & Dev usage
-##### Testing
- - Clone this repository:
-```
-$ cd /path/to/parent/directory/
-$ git clone https://github.com/blackslate/ostrio-neo4jdriver.git
-```
- - Go to package directory and install test-packages. This adds a hidden `.npm` directory containing `packages/node_modules/needle/` and many other supporting directories and files. It will then launch the demo app, and run any tests stored in test.coffee at the root of the package directory.:
-```
-$ cd ostrio-neo4jdriver
-$ meteor test-packages ./
-```
-
-
-
 ##### Local usage
 
 To use the ostrio-neo4jdriver in a project and benefit from updates to the driver as they are released, you can keep your project and the driver in separate directories, and create a symlink between them.
 
  - Clone this repository to a local directory
 
-```
+```shell
 $ cd /path/to/parent/directory/
 $ git clone https://github.com/blackslate/ostrio-neo4jdriver.git
 $ cd ostrio-neo4jdriver
@@ -330,25 +316,25 @@ $ git checkout dev
 ```
  - **Stop meteor if it is running**
  - If you don't already have a Meteor project, create a new one:
-```
+```shell
 $ cd /path/to/your/project
 $ meteor create MyProject
 ```
  - Change into your project directory:
-```
+```shell
 $ cd /path/to/your/project/MyProject
 ```
  - Create a symlink from your project folder to the ostrio-neo4jdriver package folder. Use the correct path to the ostrio-neo4jdriver director for your own environment, instead of `/path/to/`.
-```
+```shell
 $ mkdir -p packages
 $ ln -s /path/to/ostrio-neo4jdriver packages/ostrio-neo4jdriver
 ```
  - Add the Meteor.js Neo4j Driver to your project
-```
+```shell
 $ meteor add ostrio:neo4jdriver
 ```
  - Optional: create a placeholder script that will be launched on the server as soon as Meteor is ready, to check that driver has been correctly initialized, and that the global `Neo4jDB` is ready for use:
-```
+```shell
 $ mkdir -p server/lib
 $ echo 'console.log("Meteor.startup: Neo4jDB is a", typeof Neo4jDB)' > server/lib/Neo4jDriver.js
 ```
@@ -357,11 +343,11 @@ $ echo 'console.log("Meteor.startup: Neo4jDB is a", typeof Neo4jDB)' > server/li
 $ /path/to/neo4j/bin/neo4j start
 ```
  - Now run:
-```
+```shell
 $ meteor
 ```
 If you created a JS file in the optional step, then you should see the following output in your Terminal window:
-```
+```shell
 => Started proxy.                             
 => Started MongoDB.                           
 => Started your app.                          
@@ -372,3 +358,12 @@ If you created a JS file in the optional step, then you should see the following
 This last line shows that the ostrio-neo4jdriver is correctly installed and initialized.
 
 From now any changes in ostrio:neo4jdriver package folder will cause your project app to rebuild.
+
+
+##### To run tests:
+Go to the package directory and install test-packages. This adds a hidden `.npm` directory containing `packages/node_modules/needle/` and many other supporting directories and files. It will then launch the demo app, and run any tests stored in test.coffee at the root of the package directory.
+```shell
+$ cd ostrio-neo4jdriver
+$ meteor test-packages ./
+```
+Look for the output in the browser at [http://localhost:3000](http://localhost:3000).
