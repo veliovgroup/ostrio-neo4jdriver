@@ -347,7 +347,7 @@ $ /path/to/neo4j/bin/neo4j start
 $ meteor
 ```
 If you created a JS file in the optional step, then you should see the following output in your Terminal window:
-```
+```shell
 => Started proxy.                             
 => Started MongoDB.                           
 => Started your app.                          
