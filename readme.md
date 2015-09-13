@@ -348,14 +348,14 @@ $ ln -s /path/to/ostrio-neo4jdriver packages/ostrio-neo4jdriver
 $ meteor add ostrio:neo4jdriver
 ```
  - Optional: create a placeholder script that will be launched on the server as soon as Meteor is ready, to check that driver has been correctly initialized, and that the global `Neo4jDB` is ready for use:
- ```
- $ mkdir -p server/lib
- echo 'console.log("Meteor.startup: Neo4jDB is a", typeof Neo4jDB)' > server/lib/Neo4jDriver.js
- ```
+```
+$ mkdir -p server/lib
+echo 'console.log("Meteor.startup: Neo4jDB is a", typeof Neo4jDB)' > server/lib/Neo4jDriver.js
+```
  - Make sure that Neo4j is running. Use the correct path instead of `/path/to`:
- ```
- $ /path/to/neo4j/bin/neo4j start
- ````
+```
+$ /path/to/neo4j/bin/neo4j start
+```
  - Now run:
 ```
 $ meteor
