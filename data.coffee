@@ -10,7 +10,7 @@ class Neo4jData
   constructor: (@_node, @_isReactive = false, @_expiration = 0) -> 
     if @_node?._service
       @_service = _.clone @_node._service
-      @_node._service = undefined
+      delete @_node._service
 
     @__refresh()
   __refresh: -> @_expire = (+new Date) + @_expiration * 1000
