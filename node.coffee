@@ -89,7 +89,7 @@ class Neo4jNode extends Neo4jData
   delete: -> @__return (fut) -> 
     @_db.__batch 
       method: 'DELETE'
-      to: @_node._service.self.endpoint
+      to: @_service.self.endpoint
     , 
       =>
         @node = undefined
@@ -131,7 +131,7 @@ class Neo4jNode extends Neo4jData
       @_node[name] = value
       @_db.__batch 
         method: 'PUT'
-        to: @_node._service.property.endpoint.replace '{key}', name
+        to: @_service.property.endpoint.replace '{key}', name
         body: value
       , 
         => fut.return @
@@ -154,7 +154,7 @@ class Neo4jNode extends Neo4jData
 
         tasks.push
           method: 'PUT'
-          to: @_node._service.property.endpoint.replace '{key}', name
+          to: @_service.property.endpoint.replace '{key}', name
           body: value
 
       @_db.batch tasks, =>
@@ -178,7 +178,7 @@ class Neo4jNode extends Neo4jData
         delete @_node[name]
         @_db.__batch 
           method: 'DELETE'
-          to: @_node._service.property.endpoint.replace '{key}', name
+          to: @_service.property.endpoint.replace '{key}', name
         , 
           => fut.return @
         , undefined, true
@@ -205,7 +205,7 @@ class Neo4jNode extends Neo4jData
             delete @_node[name]
             tasks.push
               method: 'DELETE'
-              to: @_node._service.property.endpoint.replace '{key}', name
+              to: @_service.property.endpoint.replace '{key}', name
 
         if tasks.length > 0
           @_db.batch tasks, =>
@@ -217,7 +217,7 @@ class Neo4jNode extends Neo4jData
         delete @_node[k] for k, v of _.omit @_node, ['_service', 'id', 'labels', 'metadata']
         @_db.__batch 
           method: 'DELETE'
-          to: @_node._service.properties.endpoint
+          to: @_service.properties.endpoint
         , 
           => fut.return @
         , undefined, true
@@ -241,7 +241,7 @@ class Neo4jNode extends Neo4jData
 
       @_db.__batch 
         method: 'PUT'
-        to: @_node._service.properties.endpoint
+        to: @_service.properties.endpoint
         body: nameValue
       , 
         => fut.return @
@@ -293,7 +293,7 @@ class Neo4jNode extends Neo4jData
         @_node.metadata.labels.push label
         @_db.__batch 
           method: 'POST'
-          to: @_node._service.labels.endpoint
+          to: @_service.labels.endpoint
           body: label
         , 
           => fut.return @
@@ -320,7 +320,7 @@ class Neo4jNode extends Neo4jData
 
         @_db.__batch 
           method: 'POST'
-          to: @_node._service.labels.endpoint
+          to: @_service.labels.endpoint
           body: labels
         , 
           => fut.return @
@@ -348,7 +348,7 @@ class Neo4jNode extends Neo4jData
 
         @_db.__batch 
           method: 'PUT'
-          to: @_node._service.labels.endpoint
+          to: @_service.labels.endpoint
           body: labels
         , 
           => fut.return @
@@ -372,7 +372,7 @@ class Neo4jNode extends Neo4jData
         @_node.metadata.labels.splice @_node.metadata.labels.indexOf(label), 1
         @_db.__batch 
           method: 'DELETE'
-          to: @_node._service.labels.endpoint + '/' + label
+          to: @_service.labels.endpoint + '/' + label
         , 
           => fut.return @
         , undefined, true
@@ -401,7 +401,7 @@ class Neo4jNode extends Neo4jData
 
           tasks.push
             method: 'DELETE'
-            to: @_node._service.labels.endpoint + '/' + label
+            to: @_service.labels.endpoint + '/' + label
 
         @_db.batch tasks, =>
           fut.return @
@@ -442,7 +442,7 @@ class Neo4jNode extends Neo4jData
     @__return (fut) ->
       @_db.__batch 
         method: 'GET'
-        to: @_node._service.self.endpoint + '/degree/' + direction + '/' + types.join('&')
+        to: @_service.self.endpoint + '/degree/' + direction + '/' + types.join('&')
       , 
         (error, result) => fut.return if result.length is 0 then 0 else result
       , false, true
@@ -505,7 +505,7 @@ class Neo4jNode extends Neo4jData
     @__return (fut) ->
       @_db.__batch 
         method: 'GET'
-        to: @_node._service.create_relationship.endpoint + '/' + direction + '/' + types.join('&')
+        to: @_service.create_relationship.endpoint + '/' + direction + '/' + types.join('&')
       , 
         (error, result) => fut.return new Neo4jCursor result
       , reactive

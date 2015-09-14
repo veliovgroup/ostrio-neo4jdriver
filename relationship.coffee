@@ -64,7 +64,7 @@ class Neo4jRelationship extends Neo4jData
     @__return (fut) -> 
       @_db.__batch 
         method: 'DELETE'
-        to: @_node._service.self.endpoint
+        to: @_service.self.endpoint
       , 
         =>
           @node = undefined
@@ -106,7 +106,7 @@ class Neo4jRelationship extends Neo4jData
       @_node[name] = value
       @_db.__batch 
         method: 'PUT'
-        to: @_node._service.property.endpoint.replace '{key}', name
+        to: @_service.property.endpoint.replace '{key}', name
         body: value
       , 
         => fut.return @
@@ -129,7 +129,7 @@ class Neo4jRelationship extends Neo4jData
 
         tasks.push
           method: 'PUT'
-          to: @_node._service.property.endpoint.replace '{key}', name
+          to: @_service.property.endpoint.replace '{key}', name
           body: value
 
       @_db.batch tasks, =>
@@ -153,7 +153,7 @@ class Neo4jRelationship extends Neo4jData
         delete @_node[name]
         @_db.__batch 
           method: 'DELETE'
-          to: @_node._service.property.endpoint.replace '{key}', name
+          to: @_service.property.endpoint.replace '{key}', name
         , 
           => fut.return @
         , undefined, true
@@ -180,7 +180,7 @@ class Neo4jRelationship extends Neo4jData
             delete @_node[name]
             tasks.push
               method: 'DELETE'
-              to: @_node._service.property.endpoint.replace '{key}', name
+              to: @_service.property.endpoint.replace '{key}', name
 
         if tasks.length > 0
           @_db.batch tasks, =>
@@ -192,7 +192,7 @@ class Neo4jRelationship extends Neo4jData
         delete @_node[k] for k, v of _.omit @_node, ['_service', 'id', 'type', 'metadata', 'start', 'end']
         @_db.__batch 
           method: 'DELETE'
-          to: @_node._service.properties.endpoint
+          to: @_service.properties.endpoint
         , 
           => fut.return @
         , undefined, true
@@ -216,7 +216,7 @@ class Neo4jRelationship extends Neo4jData
 
       @_db.__batch 
         method: 'PUT'
-        to: @_node._service.properties.endpoint
+        to: @_service.properties.endpoint
         body: nameValue
       , 
         => fut.return @

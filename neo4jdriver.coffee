@@ -121,26 +121,26 @@ class Neo4jDB
           callback error, if noTransform then response else @__transformData _.clone(response), reactive
 
   __connect: -> 
-    @__call @root, {}, 'GET', (error, response) =>
-      if response?.statusCode
-        switch response.statusCode
-          when 200
-            if response.data.password_change_required
-              throw new Error "To connect to Neo4j - password change is required, please proceed to #{response.data.password_change}"
-            else
-              for key, endpoint of response.data
-                if _.isString endpoint
-                  if !!~endpoint.indexOf '://'
-                    @__service[key] = new Neo4jEndpoint key, endpoint, @
-                  else
-                    @__service[key] = get: -> endpoint
-                  __success "v#{endpoint}" if key is "neo4j_version"
-              @emit 'ready'
-              __success "Successfully connected to Neo4j on #{@url}"
+    response = @__call @root
+    if response?.statusCode
+      switch response.statusCode
+        when 200
+          if response.data.password_change_required
+            throw new Error "To connect to Neo4j - password change is required, please proceed to #{response.data.password_change}"
           else
-            throw new Error JSON.stringify response
-      else
-        throw new Error "Error with connection to Neo4j"
+            for key, endpoint of response.data
+              if _.isString endpoint
+                if !!~endpoint.indexOf '://'
+                  @__service[key] = new Neo4jEndpoint key, endpoint, @
+                else
+                  @__service[key] = get: -> endpoint
+                __success "v#{endpoint}" if key is "neo4j_version"
+            @emit 'ready'
+            __success "Successfully connected to Neo4j on #{@url}"
+        else
+          throw new Error JSON.stringify response
+    else
+      throw new Error "Error with connection to Neo4j"
 
   __call: (url, options = {}, method = 'GET', callback) ->
     check url, String

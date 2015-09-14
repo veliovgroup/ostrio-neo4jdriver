@@ -7,7 +7,12 @@
 @class Neo4jData
 ###
 class Neo4jData
-  constructor: (@_node, @_isReactive = false, @_expiration = 0) -> @__refresh()
+  constructor: (@_node, @_isReactive = false, @_expiration = 0) -> 
+    if @_node?._service
+      @_service = _.clone @_node._service
+      @_node._service = undefined
+
+    @__refresh()
   __refresh: -> @_expire = (+new Date) + @_expiration * 1000
 
   @define 'node',
@@ -39,5 +44,5 @@ class Neo4jData
   @returns {Object | [Object] | [String]} - Depends from cypher query
   ###
   update: ->
-    @node = @_node._service.self.__getAndProceed '__parseNode' if @_node?._service and @_isReactive
+    @node = @_service.self.__getAndProceed '__parseNode' if @_node and @_service and @_isReactive
     return @
