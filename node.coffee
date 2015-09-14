@@ -110,7 +110,7 @@ class Neo4jNode extends Neo4jData
 
   ###
   @locus Server
-  @summary Set one property on current node
+  @summary Set (or override, if exists) one property on current node
   @name setProperty
   @class Neo4jNode
   @url http://neo4j.com/docs/2.2.5/rest-api-node-properties.html#rest-api-set-property-on-node
@@ -119,13 +119,13 @@ class Neo4jNode extends Neo4jData
   @returns {Neo4jNode}
   ###
   setProperty: (name, value) ->
-    if _.isString name
-      check name, String
-      check value, Match.OneOf String, Number, Boolean, [String], [Number], [Boolean]
-    else if _.isObject name
+    if _.isObject name
       k = Object.keys(name)[0]
       value = name[k]
       name = k
+
+    check name, String
+    check value, Match.OneOf String, Number, Boolean, [String], [Number], [Boolean]
 
     @__return (fut) -> 
       @_node[name] = value
@@ -139,7 +139,7 @@ class Neo4jNode extends Neo4jData
 
   ###
   @locus Server
-  @summary Set one property on current node
+  @summary Set (or override, if exists) multiple property on current node
   @name setProperties
   @class Neo4jNode
   @param {Object} nameValue - Object of key:value pairs
@@ -425,3 +425,26 @@ class Neo4jNode extends Neo4jData
     check properties, Object
 
     @_db.createRelation from, @_id, type, properties
+
+  ###
+  @locus Server
+  @summary Get all node's relationships
+  @name relationships
+  @class Neo4jNode
+  @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-get-typed-relationships
+  @param {String} direction - Direction of relationships to count, one of: `all`, `out` or `in`. Default: `all`
+  @param {[String]} types - Types (labels) of relationship as array
+  @returns {Neo4jCursor}
+  ###
+  relationships: (direction = 'all', types = [], reactive = false) ->
+    check direction, String
+    check types, Match.Optional [String]
+    check reactive, Boolean
+
+    @__return (fut) ->
+      @_db.__batch 
+        method: 'GET'
+        to: @_node._service.create_relationship.endpoint + '/' + direction + '/' + types.join('&')
+      , 
+        (error, result) => fut.return new Neo4jCursor result
+      , reactive
