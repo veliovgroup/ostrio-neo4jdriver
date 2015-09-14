@@ -139,17 +139,29 @@ __nodesInstanceCRC__ = (test, node) ->
   test.isTrue _.isFunction node.updateProperties
   test.isTrue _.isFunction node.setProperties
   test.isTrue _.isFunction node.setProperty
+  test.isTrue _.isFunction node.deleteProperties
+  test.isTrue _.isFunction node.deleteProperty
   test.isTrue _.isFunction node.properties
   test.isTrue _.isFunction node.delete
   test.isTrue _.isFunction node.get
   test.isTrue _.isFunction node.__refresh
   test.isTrue _.isFunction node.update
+  test.isTrue _.isFunction node.to
+  test.isTrue _.isFunction node.from
 
 __relationCRC__ = (test, r, from, to, type, props = {}) ->
   test.instanceOf r, Neo4jRelationship
   test.isTrue _.isFunction r.get
   test.isTrue _.isFunction r.delete
   test.isTrue _.isFunction r.update
+  test.isTrue _.isFunction r.properties
+  test.isTrue _.isFunction r.setProperty
+  test.isTrue _.isFunction r.setProperties
+  test.isTrue _.isFunction r.updateProperties
+  test.isTrue _.isFunction r.property
+  test.isTrue _.isFunction r.getProperty
+  test.isTrue _.isFunction r.deleteProperty
+  test.isTrue _.isFunction r.deleteProperties
   test.isTrue _.isFunction r.__refresh
 
   _r = r.get()
@@ -370,7 +382,7 @@ Tinytest.add 'Neo4jDB - Neo4jTransaction - initiate (open) [BASICS]', (test) ->
   test.isTrue _.isFunction t.rollback
   t.rollback()
 
-Tinytest.add 'Neo4jTransaction - [resetTimeout] (waits for 1 sec to see difference)', (test) ->
+Tinytest.add 'Neo4jTransaction - resetTimeout - () (waits for 1 sec to see difference)', (test) ->
   t = db.transaction()
   ea = t._expiresAt
   fut = new Future()
@@ -390,7 +402,7 @@ Tinytest.add 'Neo4jTransaction - [resetTimeout] (waits for 1 sec to see differen
 @description Check Neo4jTransaction `.current()` and  `.rollback()` methods 
 db.transaction().current().rollback()
 ###
-Tinytest.add 'Neo4jTransaction - [current / rollback]', (test) ->
+Tinytest.add 'Neo4jTransaction - current - () [rollback]', (test) ->
   t = db.transaction "CREATE (n:TransactionsTesting {data})", data: transaction: true
   current = t.current()
   test.isTrue _.isFunction current[0].fetch
@@ -403,7 +415,7 @@ Tinytest.add 'Neo4jTransaction - [current / rollback]', (test) ->
 @description Check Neo4jTransaction `.execute()` and  `.rollback()` methods 
 db.transaction().execute().rollback()
 ###
-Tinytest.add 'Neo4jTransaction - [execute / rollback]', (test) ->
+Tinytest.add 'Neo4jTransaction - execute - (String) [rollback]', (test) ->
   t = db.transaction "CREATE (n:TransactionsTesting {data}) RETURN n", data: transaction: true
   current = t.current()
   node = current[0].fetch()[0]
@@ -423,7 +435,7 @@ Tinytest.add 'Neo4jTransaction - [execute / rollback]', (test) ->
 @description Check Neo4jTransaction `.execute()` and  `.commit()` methods 
 db.transaction().execute().commit()
 ###
-Tinytest.add 'Neo4jTransaction - [execute / commit]', (test) ->
+Tinytest.add 'Neo4jTransaction - execute - (String) [commit]', (test) ->
   t = db.transaction "CREATE (n:TransactionsTesting {data}) RETURN n", data: transaction: true
   current = t.current()
   node = current[0].fetch()[0]
@@ -447,7 +459,7 @@ Tinytest.add 'Neo4jTransaction - [execute / commit]', (test) ->
 @description Check Neo4jTransaction `.execute()`, `.current()` and  `.rollback()` methods 
 db.transaction().execute(['query', 'query']).current().rollback()
 ###
-Tinytest.add 'Neo4jTransaction - [execute multiple / current / rollback]', (test) ->
+Tinytest.add 'Neo4jTransaction - execute - ([String]) [rollback]', (test) ->
   t = db.transaction()
 
   t.execute ["CREATE (n:TransactionsTesting {data1}) RETURN n", "CREATE (n:TransactionsTesting2 {data2}) RETURN n"]
@@ -471,7 +483,7 @@ Tinytest.add 'Neo4jTransaction - [execute multiple / current / rollback]', (test
 @description Check Neo4jTransaction `.execute()` and  `.commit()` methods 
 db.transaction().execute(['query', 'query']).commit()
 ###
-Tinytest.add 'Neo4jTransaction - [execute multiple / commit]', (test) ->
+Tinytest.add 'Neo4jTransaction - execute - ([String]) [commit]', (test) ->
   db.transaction().execute(
     ["CREATE (n:TransactionsTesting {data1})", "CREATE (n:TransactionsTesting2 {data2})"]
   , 
@@ -495,7 +507,7 @@ Tinytest.add 'Neo4jTransaction - [execute multiple / commit]', (test) ->
 @description Check Neo4jTransaction `.last()` method
 db.transaction().execute(['query', 'query']).last().rollback()
 ###
-Tinytest.add 'Neo4jTransaction - [last]', (test) ->
+Tinytest.add 'Neo4jTransaction - last - ()', (test) ->
   t = db.transaction().execute(
     ["CREATE (n:TransactionsTesting {data1})", "CREATE (n:TransactionsTesting2 {data2}) RETURN n"]
   , 
@@ -511,7 +523,7 @@ Tinytest.add 'Neo4jTransaction - [last]', (test) ->
 @description Check Neo4jTransaction `.execute()` and  `.commit()` methods 
 db.transaction().execute().commit(cb:function())
 ###
-Tinytest.addAsync 'Neo4jTransaction - [commit] [ASYNC]', (test, completed) ->
+Tinytest.addAsync 'Neo4jTransaction - commit - ({Object}) [ASYNC]', (test, completed) ->
   db.transaction().commit
     query: "CREATE (n:TransactionsCommitAsync {foo: {data}}) RETURN n"
     params: data: 'bar'
@@ -527,7 +539,7 @@ Tinytest.addAsync 'Neo4jTransaction - [commit] [ASYNC]', (test, completed) ->
 @description Check Neo4jTransaction `.execute()` and  `.commit()` methods 
 db.transaction().execute().commit(function)
 ###
-Tinytest.addAsync 'Neo4jTransaction - [commit] [ASYNC] 2', (test, completed) ->
+Tinytest.addAsync 'Neo4jTransaction - commit - ({Callback}) [ASYNC] 2', (test, completed) ->
   db.transaction("CREATE (n:TransactionsCommitAsync2 {foo: {data}}) RETURN n", {data: 'bar'}).commit (err, res)->
     bound ->
       node = res[0].fetch()[0]
@@ -540,7 +552,7 @@ Tinytest.addAsync 'Neo4jTransaction - [commit] [ASYNC] 2', (test, completed) ->
 @description Check Neo4jTransaction `.commit()` method within reactive nodes 
 db.transaction()().commit()
 ###
-Tinytest.addAsync 'Neo4jTransaction - [commit] [ASYNC] [REACTIVE]', (test, completed) ->
+Tinytest.addAsync 'Neo4jTransaction - commit - ({Object}) [ASYNC] [REACTIVE]', (test, completed) ->
   db.transaction().commit
     query: "CREATE (n:TransactionsCommitReactiveAsync {foo: {data}}) RETURN n"
     params: data: 'TCRA'
@@ -563,7 +575,7 @@ Tinytest.addAsync 'Neo4jTransaction - [commit] [ASYNC] [REACTIVE]', (test, compl
 @description Check Neo4jTransaction check empty transaction
 db.transaction().rollback()
 ###
-Tinytest.add 'Neo4jTransaction - [rollback] [EMPTY]', (test) ->
+Tinytest.add 'Neo4jTransaction - rollback - () [EMPTY]', (test) ->
   test.equal db.transaction().rollback(), undefined
 
 ###
@@ -571,7 +583,7 @@ Tinytest.add 'Neo4jTransaction - [rollback] [EMPTY]', (test) ->
 @description Check Neo4jTransaction check empty transaction
 db.transaction().commit()
 ###
-Tinytest.add 'Neo4jTransaction - [commit] [EMPTY]', (test) ->
+Tinytest.add 'Neo4jTransaction - commit - () [EMPTY]', (test) ->
   test.equal db.transaction().commit(), []
 
 ###
@@ -611,7 +623,7 @@ Tinytest.addAsync 'Neo4jDB - core - Sending multiple async queries inside one Ba
 @description Check graph
 db.graph()
 ###
-Tinytest.addAsync 'Neo4jDB - db.graph - [BASICS]', (test, completed) ->
+Tinytest.addAsync 'Neo4jDB - db.graph - (String) [BASICS]', (test, completed) ->
   db.querySync "CREATE (a:FirstTest)-[r:KNOWS]->(b:SecondTest), (a:FirstTest)-[r2:WorkWith]->(c:ThirdTest), (c:ThirdTest)-[r3:KNOWS]->(b:SecondTest)"
   graph = db.graph "MATCH ()-[r]-() RETURN r"
   test.instanceOf graph, Neo4jCursor
@@ -634,7 +646,7 @@ Tinytest.addAsync 'Neo4jDB - db.graph - [BASICS]', (test, completed) ->
 @description Check batch
 db.batch(tasks)
 ###
-Tinytest.add 'Neo4jDB - db.batch - [With custom ID]', (test) ->
+Tinytest.add 'Neo4jDB - db.batch - ([Object]) [With custom ID]', (test) ->
   batch = db.batch [
       method: "POST"
       to: db.__service.cypher.endpoint
@@ -664,7 +676,7 @@ Tinytest.add 'Neo4jDB - db.batch - [With custom ID]', (test) ->
 @description Check batch ASYNC
 db.batch(tasks, callback)
 ###
-Tinytest.addAsync 'Neo4jDB - db.batch - [With custom ID] [ASYNC]', (test, completed) ->
+Tinytest.addAsync 'Neo4jDB - db.batch - ([Object]) [With custom ID] [ASYNC]', (test, completed) ->
   db.batch [
       method: "POST"
       to: db.__service.cypher.endpoint
@@ -698,7 +710,7 @@ Tinytest.addAsync 'Neo4jDB - db.batch - [With custom ID] [ASYNC]', (test, comple
 @description Check batch ASYNC
 db.batch(tasks, {plain: true}, false, true)
 ###
-Tinytest.add 'Neo4jDB - db.batch - [With custom ID] [no data transform (plain)]', (test) ->
+Tinytest.add 'Neo4jDB - db.batch - ([Object]) [With custom ID] [no data transform (plain)]', (test) ->
   batch = db.batch [
       method: "POST"
       to: db.__service.cypher.endpoint
@@ -730,7 +742,7 @@ Tinytest.add 'Neo4jDB - db.batch - [With custom ID] [no data transform (plain)]'
 @description Check batch ASYNC REACTIVE
 db.batch(tasks, {reactive: true}, true)
 ###
-Tinytest.add 'Neo4jDB - db.batch - [With custom ID] [REACTIVE]', (test) ->
+Tinytest.add 'Neo4jDB - db.batch - ([Object]) [With custom ID] [REACTIVE]', (test) ->
   batch = db.batch [
       method: "POST"
       to: db.__service.cypher.endpoint
@@ -767,7 +779,7 @@ Tinytest.add 'Neo4jDB - db.batch - [With custom ID] [REACTIVE]', (test) ->
 @description Check nodes creation / deletion
 db.nodes(props)
 ###
-Tinytest.add 'Neo4jNode - [create / delete]', (test) ->
+Tinytest.add 'Neo4jNode - create - ()', (test) ->
   node = db.nodes()
   _id = node.get().id
   
@@ -787,7 +799,7 @@ Tinytest.add 'Neo4jNode - [create / delete]', (test) ->
 @description Check nodes creation / deletion
 db.nodes(props)
 ###
-Tinytest.add 'Neo4jNode - [create / delete] (2nd way)', (test) ->
+Tinytest.add 'Neo4jNode - create - ({Object})', (test) ->
   node = db.nodes({testNodes: true})
   _id = node.get().id
   
@@ -807,7 +819,7 @@ Tinytest.add 'Neo4jNode - [create / delete] (2nd way)', (test) ->
 @description Check nodes creation / setProperty / deletion
 db.nodes(props).setProperty(name, val)
 ###
-Tinytest.add 'Neo4jNode - setProperty()', (test) ->
+Tinytest.add 'Neo4jNode - setProperty - ()', (test) ->
   node = db.nodes({testNodes: true})
   _id = node.get().id
   
@@ -835,7 +847,7 @@ Tinytest.add 'Neo4jNode - setProperty()', (test) ->
 @description Check nodes creation / setProperty / deletion
 db.nodes(props).setProperty({name: val})
 ###
-Tinytest.add 'Neo4jNode - setProperty({Object})', (test) ->
+Tinytest.add 'Neo4jNode - setProperty - ({Object})', (test) ->
   node = db.nodes({testNodes2: 'true'})
   _id = node.get().id
   
@@ -863,7 +875,7 @@ Tinytest.add 'Neo4jNode - setProperty({Object})', (test) ->
 @description Check nodes creation / setProperty / deletion
 db.nodes(props).updateProperties({name: val, name2: val2})
 ###
-Tinytest.add 'Neo4jNode - updateProperties({Object}) [Override]', (test) ->
+Tinytest.add 'Neo4jNode - updateProperties - ({Object}) [Override]', (test) ->
   node = db.nodes({testNodes3: 'updateProperties', testNodes4: 'updateProperties2'})
   _id = node.get().id
 
@@ -892,7 +904,7 @@ Tinytest.add 'Neo4jNode - updateProperties({Object}) [Override]', (test) ->
 Expect to delete or override old props, and create new
 db.nodes(props).updateProperties({name: val, name2: val2})
 ###
-Tinytest.add 'Neo4jNode - updateProperties({Object}) [Override and add new]', (test) ->
+Tinytest.add 'Neo4jNode - updateProperties - ({Object}) [Override and add new]', (test) ->
   node = db.nodes({testNodes3: 'updateProperties', testNodes4: 'updateProperties2'})
   _id = node.get().id
 
@@ -922,7 +934,7 @@ Tinytest.add 'Neo4jNode - updateProperties({Object}) [Override and add new]', (t
 @description Check nodes creation / setProperties / deletion
 db.nodes(props).setProperties({name: val, name2: val2})
 ###
-Tinytest.add 'Neo4jNode - setProperties({Object})', (test) ->
+Tinytest.add 'Neo4jNode - setProperties - ({Object})', (test) ->
   node = db.nodes({one: 1})
   _id = node.get().id
   
@@ -949,10 +961,125 @@ Tinytest.add 'Neo4jNode - setProperties({Object})', (test) ->
 
 ###
 @test 
+@description Check nodes creation / deleteProperty / deletion
+db.nodes(props).deleteProperty(name)
+###
+Tinytest.add 'Neo4jNode - deleteProperty - (name)', (test) ->
+  node = db.nodes({one: 1})
+  _id = node.get().id
+  
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {one: 1}
+
+  node.deleteProperty 'one'
+  test.isUndefined node.get().one
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+
+  test.isUndefined _node.n.one
+
+  test.equal node.delete(), undefined
+
+###
+@test 
+@description Check nodes creation / deleteProperty / deletion
+db.nodes(props).deleteProperty(name)
+###
+Tinytest.add 'Neo4jNode - deleteProperty - (name) [non-existent]', (test) ->
+  node = db.nodes()
+  _id = node.get().id
+  
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {}
+
+  node.deleteProperty 'one'
+  test.isUndefined node.get().one
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+
+  test.isUndefined _node.n.one
+
+  test.equal node.delete(), undefined
+
+###
+@test 
+@description Check nodes creation / deleteProperties / deletion
+db.nodes(props).deleteProperties([name, name2])
+###
+Tinytest.add 'Neo4jNode - deleteProperties - ([String])', (test) ->
+  node = db.nodes({one: 1, two: 2})
+  _id = node.get().id
+  
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {one: 1, two: 2}
+
+  node.deleteProperties ['one', 'two']
+  test.isUndefined node.get().one, '[one] removed from instance'
+  test.isUndefined node.get().two, '[two] removed from instance'
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+
+  test.isUndefined _node.n.one, '[one] removed from db'
+  test.isUndefined _node.n.two, '[two] removed from db'
+
+  test.equal node.delete(), undefined
+
+###
+@test 
+@description Check nodes creation / deleteProperties / deletion
+db.nodes(props).deleteProperties([name, name2])
+###
+Tinytest.add 'Neo4jNode - deleteProperties - ([String]) [non-existent]', (test) ->
+  node = db.nodes({one: 1, two: 2})
+  _id = node.get().id
+  
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {one: 1, two: 2}
+
+  node.deleteProperties ['three', 'four']
+  test.equal node.get().one, 1
+  test.equal node.get().two, 2
+  test.isUndefined node.get().three
+  test.isUndefined node.get().four
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+
+  test.equal _node.n.one, 1
+  test.equal _node.n.two, 2
+  test.isUndefined _node.n.three
+  test.isUndefined _node.n.four
+
+  test.equal node.delete(), undefined
+
+###
+@test 
+@description Check nodes creation / deleteProperties / deletion
+db.nodes(props).deleteProperties()
+###
+Tinytest.add 'Neo4jNode - deleteProperties - () [remove all]', (test) ->
+  node = db.nodes({one: 1, two: 2})
+  _id = node.get().id
+  
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {one: 1, two: 2}
+
+  node.deleteProperties()
+  test.isUndefined node.get().one, '[one] removed from instance'
+  test.isUndefined node.get().two, '[two] removed from instance'
+
+  _node = db.queryOne "MATCH n WHERE id(n) = {id} RETURN n", {id: _id}
+
+  test.isUndefined _node.n.one, '[one] removed from db'
+  test.isUndefined _node.n.two, '[two] removed from db'
+
+  test.equal node.delete(), undefined
+
+###
+@test 
 @description Check nodes creation / property / deletion
 db.nodes(props).property(name)
 ###
-Tinytest.add 'Neo4jNode - property(name) [GET]', (test) ->
+Tinytest.add 'Neo4jNode - property - (name) [GET]', (test) ->
   node = db.nodes({one: 1, two: 2})
   test.equal node.property('two'), 2
   test.equal node.delete(), undefined
@@ -963,7 +1090,7 @@ Tinytest.add 'Neo4jNode - property(name) [GET]', (test) ->
 @description Check nodes creation / property / deletion
 db.nodes(props).property(name, value).property(name)
 ###
-Tinytest.add 'Neo4jNode - property(name, value) [SET]', (test) ->
+Tinytest.add 'Neo4jNode - property - (name, value) [SET]', (test) ->
   node = db.nodes({one: 1, two: 2})
   __nodesInstanceCRC__ test, node
 
@@ -980,7 +1107,7 @@ Tinytest.add 'Neo4jNode - property(name, value) [SET]', (test) ->
 @description Check nodes creation / property / deletion
 db.nodes(props).property(name, value).property(name)
 ###
-Tinytest.add 'Neo4jNode - property(name, value) [UPDATE]', (test) ->
+Tinytest.add 'Neo4jNode - property - (name, value) [UPDATE]', (test) ->
   node = db.nodes({one: 1, two: 2})
   __nodesInstanceCRC__ test, node
 
@@ -997,7 +1124,7 @@ Tinytest.add 'Neo4jNode - property(name, value) [UPDATE]', (test) ->
 @description Check nodes creation / getProperty / deletion
 db.nodes(props).getProperty(name)
 ###
-Tinytest.add 'Neo4jNode - getProperty(name)', (test) ->
+Tinytest.add 'Neo4jNode - getProperty - (name)', (test) ->
   node = db.nodes({one: 1, two: 2})
   __nodesInstanceCRC__ test, node
 
@@ -1010,7 +1137,7 @@ Tinytest.add 'Neo4jNode - getProperty(name)', (test) ->
 @description Check nodes creation / deletion
 db.nodes({node returned from Neo4j}).delete()
 ###
-Tinytest.add 'Neo4jNode - nodes({Object})', (test) ->
+Tinytest.add 'Neo4jNode - nodes - ({Object})', (test) ->
   task = 
     method: 'POST'
     to: db.__service.cypher.endpoint
@@ -1030,7 +1157,7 @@ Tinytest.add 'Neo4jNode - nodes({Object})', (test) ->
 @description Check nodes creation / deletion
 db.nodes({node ID}).delete()
 ###
-Tinytest.add 'Neo4jNode - nodes(id)', (test) ->
+Tinytest.add 'Neo4jNode - nodes - (id)', (test) ->
   task = 
     method: 'POST'
     to: db.__service.cypher.endpoint
@@ -1050,7 +1177,7 @@ Tinytest.add 'Neo4jNode - nodes(id)', (test) ->
 @description Check nodes creation / deletion
 db.nodes({node returned from Neo4j}, true).delete(name)
 ###
-Tinytest.add 'Neo4jNode - nodes({Object}) [REACTIVE]', (test) ->
+Tinytest.add 'Neo4jNode - nodes - ({Object}) [REACTIVE]', (test) ->
   task = 
     method: 'POST'
     to: db.__service.cypher.endpoint
@@ -1073,7 +1200,7 @@ Tinytest.add 'Neo4jNode - nodes({Object}) [REACTIVE]', (test) ->
 @description Check nodes creation / deletion
 db.nodes({node ID}, true).delete(name)
 ###
-Tinytest.add 'Neo4jNode - nodes(id) [REACTIVE]', (test) ->
+Tinytest.add 'Neo4jNode - nodes - (id) [REACTIVE]', (test) ->
   task = 
     method: 'POST'
     to: db.__service.cypher.endpoint
@@ -1195,7 +1322,7 @@ Tinytest.add 'Neo4jNode - [REACTIVE]', (test) ->
 @description Check nodes fetching / setting label / deletion
 db.nodes().setLabel('label').delete()
 ###
-Tinytest.add 'Neo4jNode - setLabel(name)', (test) ->
+Tinytest.add 'Neo4jNode - setLabel - (name)', (test) ->
   node = db.nodes().setLabel('MyLabel')
   __nodesInstanceCRC__ test, node
 
@@ -1210,7 +1337,7 @@ Tinytest.add 'Neo4jNode - setLabel(name)', (test) ->
 @description Check nodes fetching / setting label / deletion
 db.nodes().setLabels(['label', 'label2']).delete()
 ###
-Tinytest.add 'Neo4jNode - setLabels([name, name2]) ', (test) ->
+Tinytest.add 'Neo4jNode - setLabels - ([name, name2]) ', (test) ->
   node = db.nodes().setLabels(['MyLabel', 'MyLabel2'])
   __nodesInstanceCRC__ test, node
 
@@ -1225,7 +1352,7 @@ Tinytest.add 'Neo4jNode - setLabels([name, name2]) ', (test) ->
 @description Check nodes fetching / setting label / deletion
 db.nodes().setLabels(['label', 'label2']).setLabel('label').setLabels(['label', 'label2']).setLabel('label').delete()
 ###
-Tinytest.add 'Neo4jNode - setLabels([name, name2]).setLabel(name3)', (test) ->
+Tinytest.add 'Neo4jNode - setLabels - ([name, name2]).setLabel(name3)', (test) ->
   node = db.nodes().setLabels(['MyLabel', 'MyLabel2']).setLabel('MyLabel3').setLabels(['MyLabel4', 'MyLabel5']).setLabel('MyLabel6')
   __nodesInstanceCRC__ test, node
 
@@ -1240,7 +1367,7 @@ Tinytest.add 'Neo4jNode - setLabels([name, name2]).setLabel(name3)', (test) ->
 @description Check nodes fetching / setting label / deletion
 db.nodes().setLabels(['label', 'label2']).setLabel('label').setLabels(['label', 'label2']).setLabel('label').delete()
 ###
-Tinytest.add 'Neo4jNode - setLabels([name, name]).setLabel(name) [DUPLICATES]', (test) ->
+Tinytest.add 'Neo4jNode - setLabels - ([name, name]).setLabel(name) [DUPLICATES]', (test) ->
   node = db.nodes().setLabels(['MyLabel', 'MyLabel2']).setLabel('MyLabel').setLabels(['MyLabel2', 'MyLabel5']).setLabel('MyLabel5')
   __nodesInstanceCRC__ test, node
 
@@ -1255,7 +1382,7 @@ Tinytest.add 'Neo4jNode - setLabels([name, name]).setLabel(name) [DUPLICATES]', 
 @description Check nodes fetching / setting label / deletion
 db.nodes().setLabels(['label', 'label2']).setLabel('label').setLabels(['label', 'label2']).setLabel('label').delete()
 ###
-Tinytest.add 'Neo4jNode - setLabels([name, ""]).setLabel("") [Invalid Names]', (test) ->
+Tinytest.add 'Neo4jNode - setLabels - ([name, ""]).setLabel("") [Invalid Names]', (test) ->
   node = db.nodes().setLabels(['My Label', '']).setLabel('').setLabel('Label').setLabels(['', ''])
   __nodesInstanceCRC__ test, node
 
@@ -1270,7 +1397,7 @@ Tinytest.add 'Neo4jNode - setLabels([name, ""]).setLabel("") [Invalid Names]', (
 @description Check nodes fetching / replacing label / deletion
 db.nodes().setLabels(['label', 'label2']).replaceLabels(['label']).delete()
 ###
-Tinytest.add 'Neo4jNode - replaceLabels([String])', (test) ->
+Tinytest.add 'Neo4jNode - replaceLabels - ([String])', (test) ->
   node = db.nodes().setLabels(['MyLabel1', 'MyLabel2'])
   __nodesInstanceCRC__ test, node
 
@@ -1291,7 +1418,7 @@ Tinytest.add 'Neo4jNode - replaceLabels([String])', (test) ->
 @description Check nodes fetching / replacing label / deletion
 db.nodes().setLabels(['label', 'label2']).replaceLabels(['label']).delete()
 ###
-Tinytest.add 'Neo4jNode - replaceLabels([String]) [DUPLICATES]', (test) ->
+Tinytest.add 'Neo4jNode - replaceLabels - ([String]) [DUPLICATES]', (test) ->
   node = db.nodes().setLabels(['MyLabel1', 'MyLabel2', 'MyLabel1']).setLabel('MyLabel1')
   __nodesInstanceCRC__ test, node
 
@@ -1312,7 +1439,7 @@ Tinytest.add 'Neo4jNode - replaceLabels([String]) [DUPLICATES]', (test) ->
 @description Check nodes fetching / replacing label / deletion
 db.nodes().setLabels(['label', 'label2']).replaceLabels(['label']).delete()
 ###
-Tinytest.add 'Neo4jNode - replaceLabels([String]) [Invalid Names]', (test) ->
+Tinytest.add 'Neo4jNode - replaceLabels - ([String]) [Invalid Names]', (test) ->
   node = db.nodes().setLabels(['MyLabel1', 'MyLabel2', '']).setLabel('').replaceLabels(["", ""])
   __nodesInstanceCRC__ test, node
 
@@ -1333,7 +1460,7 @@ Tinytest.add 'Neo4jNode - replaceLabels([String]) [Invalid Names]', (test) ->
 @description Check nodes fetching / deleting label / deletion
 db.nodes().setLabels(['label', 'label2']).deleteLabel('label').delete()
 ###
-Tinytest.add 'Neo4jNode - deleteLabel(name)', (test) ->
+Tinytest.add 'Neo4jNode - deleteLabel - (name)', (test) ->
   node = db.nodes().setLabels(['MyLabel1', 'MyLabel2'])
   __nodesInstanceCRC__ test, node
 
@@ -1354,7 +1481,7 @@ Tinytest.add 'Neo4jNode - deleteLabel(name)', (test) ->
 @description Check nodes fetching / deleting label / deletion
 db.nodes().setLabels(['label', 'label2']).deleteLabel('label').delete()
 ###
-Tinytest.add 'Neo4jNode - deleteLabel(name) [Non Existent]', (test) ->
+Tinytest.add 'Neo4jNode - deleteLabel - (name) [Non Existent]', (test) ->
   node = db.nodes().setLabels(['MyLabel1', 'MyLabel2'])
   __nodesInstanceCRC__ test, node
 
@@ -1375,7 +1502,7 @@ Tinytest.add 'Neo4jNode - deleteLabel(name) [Non Existent]', (test) ->
 @description Check nodes fetching / deleting labels / deletion
 db.nodes().setLabels(['label', 'label2', 'label3']).deleteLabels(['label', 'label3']).delete()
 ###
-Tinytest.add 'Neo4jNode - deleteLabels([String])', (test) ->
+Tinytest.add 'Neo4jNode - deleteLabels - ([String])', (test) ->
   node = db.nodes().setLabels(['MyLabel1', 'MyLabel2', 'MyLabel3'])
   __nodesInstanceCRC__ test, node
 
@@ -1396,7 +1523,7 @@ Tinytest.add 'Neo4jNode - deleteLabels([String])', (test) ->
 @description Check nodes fetching / deleting labels / deletion
 db.nodes().setLabels(['label', 'label2', 'label3']).deleteLabels(['label5', 'label6']).delete()
 ###
-Tinytest.add 'Neo4jNode - deleteLabels([String]) [Non Existent]', (test) ->
+Tinytest.add 'Neo4jNode - deleteLabels - ([String]) [Non Existent]', (test) ->
   node = db.nodes().setLabels(['MyLabel1', 'MyLabel2', 'MyLabel3'])
   __nodesInstanceCRC__ test, node
 
@@ -1417,7 +1544,7 @@ Tinytest.add 'Neo4jNode - deleteLabels([String]) [Non Existent]', (test) ->
 @description Check nodes fetching / getting labels / deletion
 db.nodes().labels().delete()
 ###
-Tinytest.add 'Neo4jNode - labels() [GET]', (test) ->
+Tinytest.add 'Neo4jNode - labels - () [GET]', (test) ->
   node = db.nodes().setLabels(['MyLabel1', 'MyLabel2', 'MyLabel3'])
   test.equal node.labels(), ["MyLabel1", "MyLabel2", "MyLabel3"]
   node.delete()
@@ -1427,7 +1554,7 @@ Tinytest.add 'Neo4jNode - labels() [GET]', (test) ->
 @description Check nodes fetching / getting labels / deletion
 db.nodes().labels(['label', 'label2']).labels().delete()
 ###
-Tinytest.add 'Neo4jNode - labels([String]).labels() [SET / GET]', (test) ->
+Tinytest.add 'Neo4jNode - labels - ([String]).labels() [SET / GET]', (test) ->
   node = db.nodes().labels(['MyLabel1', 'MyLabel2', 'MyLabel3'])
   test.equal node.labels(), ["MyLabel1", "MyLabel2", "MyLabel3"]
 
@@ -1442,7 +1569,7 @@ Tinytest.add 'Neo4jNode - labels([String]).labels() [SET / GET]', (test) ->
 @description Check nodes fetching / getting labels / deletion
 db.nodes().labels(['label', 'label2']).labels().delete()
 ###
-Tinytest.add 'Neo4jNode - labels([String]).labels() [SET / GET] [REACTIVE]', (test) ->
+Tinytest.add 'Neo4jNode - labels - ([String]).labels() [SET / GET] [REACTIVE]', (test) ->
   node = db.nodes(null, true)
   test.equal node.labels(), []
 
@@ -1458,7 +1585,7 @@ Tinytest.add 'Neo4jNode - labels([String]).labels() [SET / GET] [REACTIVE]', (te
 @description 
 db.getRelation(id).delete()
 ###
-Tinytest.add 'Neo4jDB - getRelation(id)', (test) ->
+Tinytest.add 'Neo4jDB - getRelation - (id)', (test) ->
   r = db.queryOne("CREATE (a)-[r:KNOWS {test: true}]->(b) RETURN r").r
   _r = db.getRelation(r.id)
   __relationCRC__ test, _r, r.start, r.end, 'KNOWS', {test: true}
@@ -1472,7 +1599,7 @@ Tinytest.add 'Neo4jDB - getRelation(id)', (test) ->
 @description 
 db.getRelation(id, true).delete()
 ###
-Tinytest.add 'Neo4jDB - getRelation(id, true) [REACTIVE]', (test) ->
+Tinytest.add 'Neo4jDB - getRelation - (id, true) [REACTIVE]', (test) ->
   r = db.queryOne("CREATE (a)-[r:KNOWS {test: true}]->(b) RETURN r").r
   _r = db.getRelation(r.id, true)
 
@@ -1489,7 +1616,7 @@ Tinytest.add 'Neo4jDB - getRelation(id, true) [REACTIVE]', (test) ->
 @description 
 db.createRelation(db.nodes(), db.nodes()).delete()
 ###
-Tinytest.add 'Neo4jDB - createRelation(from, to, type, {})', (test) ->
+Tinytest.add 'Neo4jDB - createRelation - (from, to, type, {})', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = db.createRelation n1, n2, 'KNOWS', {test: true}
@@ -1504,7 +1631,7 @@ Tinytest.add 'Neo4jDB - createRelation(from, to, type, {})', (test) ->
 @description 
 db.createRelation(db.nodes(), db.nodes()).delete()
 ###
-Tinytest.add 'Neo4jDB - createRelation(from, to, type) [NoProps]', (test) ->
+Tinytest.add 'Neo4jDB - createRelation - (from, to, type) [NoProps]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = db.createRelation n1, n2, 'KNOWS'
@@ -1519,7 +1646,7 @@ Tinytest.add 'Neo4jDB - createRelation(from, to, type) [NoProps]', (test) ->
 @description 
 db.createRelation(db.nodes(), db.nodes(), {_reactive: true}).delete()
 ###
-Tinytest.add 'Neo4jDB - createRelation(from, to, type, {_reactive: true}) [REACTIVE]', (test) ->
+Tinytest.add 'Neo4jDB - createRelation - (from, to, type, {_reactive: true}) [REACTIVE]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = db.createRelation n1, n2, 'KNOWS', _reactive: true
@@ -1540,7 +1667,7 @@ Tinytest.add 'Neo4jDB - createRelation(from, to, type, {_reactive: true}) [REACT
 @description 
 db.node().to(node2).delete()
 ###
-Tinytest.add 'Neo4jNode - [relationship] - node.to(node2, type)', (test) ->
+Tinytest.add 'Neo4jNode - node.to - (node2, type)', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.to n2, 'KNOWS', foo: 'bar'
@@ -1560,7 +1687,7 @@ Tinytest.add 'Neo4jNode - [relationship] - node.to(node2, type)', (test) ->
 @description 
 db.node().from(node2).delete()
 ###
-Tinytest.add 'Neo4jNode - [relationship] - node.from(node2, type)', (test) ->
+Tinytest.add 'Neo4jNode - node.from - (node2, type)', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.from n2, 'KNOWS', foo: 'bar'
@@ -1580,7 +1707,7 @@ Tinytest.add 'Neo4jNode - [relationship] - node.from(node2, type)', (test) ->
 @description 
 db.node().to(node2).delete()
 ###
-Tinytest.add 'Neo4jNode - [relationship] - node.to(node2, type, {_reactive: true}) [REACTIVE]', (test) ->
+Tinytest.add 'Neo4jNode - node.to - (node2, type, {_reactive: true}) [REACTIVE]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.to n2, 'KNOWS', {foo: 'bar', _reactive: true}
@@ -1602,7 +1729,7 @@ Tinytest.add 'Neo4jNode - [relationship] - node.to(node2, type, {_reactive: true
 @description 
 db.node().from(node2).delete()
 ###
-Tinytest.add 'Neo4jNode - [relationship] - node.from(node2, type, {_reactive: true}) [REACTIVE]', (test) ->
+Tinytest.add 'Neo4jNode - node.from - (node2, type, {_reactive: true}) [REACTIVE]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.from n2, 'KNOWS', {foo: 'bar', _reactive: true}
@@ -1762,7 +1889,7 @@ Tinytest.add 'Neo4jNode - degree()', (test) ->
 @description 
 db.node().relationships()
 ###
-Tinytest.add 'Neo4jNode - relationships()', (test) ->
+Tinytest.add 'Neo4jNode - relationships - ()', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r1 = n1.to n2, 'LIKES', tests: 'yes'
@@ -1790,7 +1917,7 @@ Tinytest.add 'Neo4jNode - relationships()', (test) ->
 @description 
 db.node().relationships("in|out|all", [types])
 ###
-Tinytest.add 'Neo4jNode - relationships("in|out|all", [types])', (test) ->
+Tinytest.add 'Neo4jNode - relationships - ("in|out|all", [types])', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r1 = n1.to n2, 'LIKES', tests: 'yes'
@@ -1837,7 +1964,7 @@ Tinytest.add 'Neo4jNode - relationships("in|out|all", [types])', (test) ->
 @description 
 db.node().relationships("in|out|all", [types], true)
 ###
-Tinytest.add 'Neo4jNode - relationships("in|out|all", [types]) [REACTIVE]', (test) ->
+Tinytest.add 'Neo4jNode - relationships - ("in|out|all", [types]) [REACTIVE]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r1 = n1.to n2, 'LIKES', tests: 'yes'
@@ -1929,7 +2056,7 @@ Tinytest.add 'Neo4jNode - relationships("in|out|all", [types]) [REACTIVE]', (tes
 @description
 r.setProperty(name, val)
 ###
-Tinytest.add 'Neo4jRelationship - setProperty("name", "value")', (test) ->
+Tinytest.add 'Neo4jRelationship - setProperty - ("name", "value")', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.to n2, "KNOWS", {testRels: true}
@@ -1952,7 +2079,7 @@ Tinytest.add 'Neo4jRelationship - setProperty("name", "value")', (test) ->
 @description
 r.setProperty({name: val})
 ###
-Tinytest.add 'Neo4jRelationship - setProperty({Object})', (test) ->
+Tinytest.add 'Neo4jRelationship - setProperty - ({Object})', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.to n2, "KNOWS", {testRels: true}
@@ -1975,7 +2102,7 @@ Tinytest.add 'Neo4jRelationship - setProperty({Object})', (test) ->
 @description Expect to delete or override old props, and create new
 r.updateProperties({name: val})
 ###
-Tinytest.add 'Neo4jRelationship - updateProperties({Object})', (test) ->
+Tinytest.add 'Neo4jRelationship - updateProperties - ({Object})', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.to n2, "KNOWS", {testRels: true}
@@ -1998,7 +2125,7 @@ Tinytest.add 'Neo4jRelationship - updateProperties({Object})', (test) ->
 @description
 r.setProperties({name: val})
 ###
-Tinytest.add 'Neo4jRelationship - setProperties({Object})', (test) ->
+Tinytest.add 'Neo4jRelationship - setProperties - ({Object})', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.to n2, "KNOWS", {testRels: true}
@@ -2021,7 +2148,7 @@ Tinytest.add 'Neo4jRelationship - setProperties({Object})', (test) ->
 @description
 r.property(name)
 ###
-Tinytest.add 'Neo4jRelationship - property(name) [GET]', (test) ->
+Tinytest.add 'Neo4jRelationship - property - (name) [GET]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.to n2, "KNOWS", {testRels: true}
@@ -2037,7 +2164,7 @@ Tinytest.add 'Neo4jRelationship - property(name) [GET]', (test) ->
 @description
 r.property(name)
 ###
-Tinytest.add 'Neo4jRelationship - property(name, value) [SET]', (test) ->
+Tinytest.add 'Neo4jRelationship - property - (name, value) [SET]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.to n2, "KNOWS", {testRels: true}
@@ -2059,7 +2186,7 @@ Tinytest.add 'Neo4jRelationship - property(name, value) [SET]', (test) ->
 @test 
 r.property(name)
 ###
-Tinytest.add 'Neo4jRelationship - property(name, value) [UPDATE]', (test) ->
+Tinytest.add 'Neo4jRelationship - property - (name, value) [UPDATE]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.to n2, "KNOWS", {testRels: true}
@@ -2082,7 +2209,7 @@ Tinytest.add 'Neo4jRelationship - property(name, value) [UPDATE]', (test) ->
 @description
 r.getProperty(name)
 ###
-Tinytest.add 'Neo4jRelationship - getProperty(name)', (test) ->
+Tinytest.add 'Neo4jRelationship - getProperty - (name)', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.to n2, "KNOWS", {testRels: true}
@@ -2100,7 +2227,7 @@ Tinytest.add 'Neo4jRelationship - getProperty(name)', (test) ->
 r = n1.to(n2, type, {_reactive: true})
 r.getProperty(name)
 ###
-Tinytest.add 'Neo4jRelationship - getProperty(name) [REACTIVE]', (test) ->
+Tinytest.add 'Neo4jRelationship - getProperty - (name) [REACTIVE]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.to n2, "KNOWS", {testRels: true, _reactive: true}
@@ -2116,3 +2243,133 @@ Tinytest.add 'Neo4jRelationship - getProperty(name) [REACTIVE]', (test) ->
 
 
 
+###
+@test 
+@description 
+r..deleteProperty(name)
+###
+Tinytest.add 'Neo4jRelationship - deleteProperty - (name)', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = n1.to n2, "KNOWS", {testRels: true, testRel2: 2}
+  id = r.get().id
+
+  r.deleteProperty 'testRels'
+
+  test.equal r.get().testRels, undefined
+  test.equal r.get().testRel2, 2
+
+  _r = db.queryOne("MATCH ()-[r]-() WHERE id(r) = {id} RETURN r", {id}).r
+
+  test.equal _r.testRels, undefined
+  test.equal _r.testRel2, 2
+
+  test.equal r.delete(), undefined
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+# ###
+# @test 
+# @description
+# r..deleteProperty(name)
+# ###
+Tinytest.add 'Neo4jRelationship - deleteProperty - (name) [non-existent]', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = n1.to n2, "KNOWS", {testRels: true, testRel2: 2}
+  id = r.get().id
+
+  r.deleteProperty 'testRel3'
+
+  test.equal r.get().testRels, true
+  test.equal r.get().testRel2, 2
+
+  _r = db.queryOne("MATCH ()-[r]-() WHERE id(r) = {id} RETURN r", {id}).r
+
+  test.equal _r.testRels, true
+  test.equal _r.testRel2, 2
+
+  test.equal r.delete(), undefined
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+# ###
+# @test 
+# @description
+# r.deleteProperties([name, name2])
+# ###
+Tinytest.add 'Neo4jRelationship - deleteProperties - ([String])', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = n1.to n2, "KNOWS", {testRels: true, testRel2: 2, testRel3: '3'}
+  id = r.get().id
+
+  r.deleteProperties(['testRel3', 'testRels'])
+
+  test.equal r.get().testRels, undefined
+  test.equal r.get().testRel2, 2
+  test.equal r.get().testRel3, undefined
+
+  _r = db.queryOne("MATCH ()-[r]-() WHERE id(r) = {id} RETURN r", {id}).r
+
+  test.equal _r.testRels, undefined
+  test.equal _r.testRel2, 2
+  test.equal _r.testRel3, undefined
+
+  test.equal r.delete(), undefined
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+# ###
+# @test 
+# @description
+# r.deleteProperties([name, name2])
+# ###
+Tinytest.add 'Neo4jRelationship - deleteProperties - ([String]) [non-existent]', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = n1.to n2, "KNOWS", {testRels: true, testRel2: 2, testRel3: '3'}
+  id = r.get().id
+
+  r.deleteProperties(['testRel5', 'testRel6'])
+
+  test.equal r.get().testRels, true
+  test.equal r.get().testRel2, 2
+  test.equal r.get().testRel3, '3'
+
+  _r = db.queryOne("MATCH ()-[r]-() WHERE id(r) = {id} RETURN r", {id}).r
+
+  test.equal _r.testRels, true
+  test.equal _r.testRel2, 2
+  test.equal _r.testRel3, '3'
+
+  test.equal r.delete(), undefined
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+# ###
+# @test 
+# @description
+# r.deleteProperties()
+# ###
+Tinytest.add 'Neo4jRelationship - deleteProperties - () [remove all]', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = n1.to n2, "KNOWS", {testRels: true, testRel2: 2, testRel3: '3'}
+  id = r.get().id
+
+  r.deleteProperties()
+
+  test.equal r.get().testRels, undefined
+  test.equal r.get().testRel2, undefined
+  test.equal r.get().testRel3, undefined
+
+  _r = db.queryOne("MATCH ()-[r]-() WHERE id(r) = {id} RETURN r", {id}).r
+
+  test.equal _r.testRels, undefined
+  test.equal _r.testRel2, undefined
+  test.equal _r.testRel3, undefined
+
+  test.equal r.delete(), undefined
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined

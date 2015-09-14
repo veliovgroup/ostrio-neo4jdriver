@@ -138,6 +138,67 @@ class Neo4jRelationship extends Neo4jData
 
   ###
   @locus Server
+  @summary Delete a one property by name from a node
+  @name deleteProperty
+  @class Neo4jRelationship
+  @url http://neo4j.com/docs/2.2.5/rest-api-relationship-properties.html#rest-api-remove-property-from-a-relationship
+  @param {String} name  - Name of the property
+  @returns {Neo4jRelationship}
+  ###
+  deleteProperty: (name) ->
+    check name, String
+
+    @__return (fut) -> 
+      if @_node?[name]
+        delete @_node[name]
+        @_db.__batch 
+          method: 'DELETE'
+          to: @_node._service.property.endpoint.replace '{key}', name
+        , 
+          => fut.return @
+        , undefined, true
+      else
+        fut.return @
+
+  ###
+  @locus Server
+  @summary Delete all or multiple properties by name from a node. 
+           If no argument is passed, - all properties will be removed from the node.
+  @name deleteProperties
+  @class Neo4jRelationship
+  @url http://neo4j.com/docs/2.2.5/rest-api-relationship-properties.html#rest-api-remove-properties-from-a-relationship
+  @param {[String]} names - Array of names
+  @returns {Neo4jRelationship}
+  ###
+  deleteProperties: (names) ->
+    check names, Match.Optional [String]
+    @__return (fut) ->
+      if names
+        tasks = []
+        for name in names
+          if @_node?[name]
+            delete @_node[name]
+            tasks.push
+              method: 'DELETE'
+              to: @_node._service.property.endpoint.replace '{key}', name
+
+        if tasks.length > 0
+          @_db.batch tasks, =>
+            fut.return @
+          , false, true
+        else
+          fut.return @
+      else
+        delete @_node[k] for k, v of _.omit @_node, ['_service', 'id', 'type', 'metadata', 'start', 'end']
+        @_db.__batch 
+          method: 'DELETE'
+          to: @_node._service.properties.endpoint
+        , 
+          => fut.return @
+        , undefined, true
+
+  ###
+  @locus Server
   @summary This ~~will replace all existing properties~~ (not actually due to [this bug](https://github.com/neo4j/neo4j/issues/5341)), it will update existing properties and add new.
   @name updateProperties
   @class Neo4jRelationship
@@ -148,7 +209,7 @@ class Neo4jRelationship extends Neo4jData
   updateProperties: (nameValue) ->
     check nameValue, Object
     @__return (fut) ->
-      delete @_node[k] for k, v of _.omit @_node, ['_service', 'id', 'type', 'metadata', 'start', 'end']
+      # delete @_node[k] for k, v of _.omit @_node, ['_service', 'id', 'type', 'metadata', 'start', 'end']
 
       for k, v of nameValue
         @_node[k] = v
