@@ -6,7 +6,6 @@
          Might be reactive data source, if `_isReactive` passed as `true` - data of relationship will be updated before returning
 
          First argument must be number (id) or object returned from db
-
          This class is event-driven and all methods is chainable
 @class Neo4jRelationship
 ###
@@ -74,13 +73,122 @@ class Neo4jRelationship extends Neo4jData
 
   ###
   @locus Server
-  @summary Create relationship between two nodes
-  @name create
+  @summary Get current relationship's properties
+  @name properties
   @class Neo4jRelationship
-  @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-create-a-relationship-with-properties
+  @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-get-all-properties-on-a-relationship
+  @returns {Object}
+  ###
+  properties: -> @__return (fut) -> 
+    @update()
+    fut.return _.omit @node, ['_service', 'id', 'type', 'metadata', 'start', 'end']
+
+  ###
+  @locus Server
+  @summary Set (or override, if exists) one property on current relationship
+  @name setProperty
+  @class Neo4jRelationship
+  @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-set-single-property-on-a-relationship
+  @param {String} name  - Name of the property
+  @param {String} value - Value of the property
   @returns {Neo4jRelationship}
   ###
-  # create: (from, to, type, properties = {}) -> 
-    # @__return (fut) -> fut.return super
+  setProperty: (name, value) ->
+    if _.isObject name
+      k = Object.keys(name)[0]
+      value = name[k]
+      name = k
+
+    check name, String
+    check value, Match.OneOf String, Number, Boolean, [String], [Number], [Boolean]
+
+    @__return (fut) -> 
+      @_node[name] = value
+      @_db.__batch 
+        method: 'PUT'
+        to: @_node._service.property.endpoint.replace '{key}', name
+        body: value
+      , 
+        => fut.return @
+      , undefined, true
+
+  ###
+  @locus Server
+  @summary Set (or override, if exists) multiple property on current relationship
+  @name setProperties
+  @class Neo4jRelationship
+  @param {Object} nameValue - Object of key:value pairs
+  @returns {Neo4jRelationship}
+  ###
+  setProperties: (nameValue) ->
+    check nameValue, Object
+    @__return (fut) ->
+      tasks = []
+      for name, value of nameValue
+        @_node[name] = value
+
+        tasks.push
+          method: 'PUT'
+          to: @_node._service.property.endpoint.replace '{key}', name
+          body: value
+
+      @_db.batch tasks, =>
+        fut.return @
+      , false, true
+
+  ###
+  @locus Server
+  @summary This ~~will replace all existing properties~~ (not actually due to [this bug](https://github.com/neo4j/neo4j/issues/5341)), it will update existing properties and add new.
+  @name updateProperties
+  @class Neo4jRelationship
+  @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-set-all-properties-on-a-relationship
+  @param {Object} nameValue - Object of key:value pairs
+  @returns {Neo4jRelationship}
+  ###
+  updateProperties: (nameValue) ->
+    check nameValue, Object
+    @__return (fut) ->
+      delete @_node[k] for k, v of _.omit @_node, ['_service', 'id', 'type', 'metadata', 'start', 'end']
+
+      for k, v of nameValue
+        @_node[k] = v
+
+      @_db.__batch 
+        method: 'PUT'
+        to: @_node._service.properties.endpoint
+        body: nameValue
+      , 
+        => fut.return @
+      , undefined, true
+
+  ###
+  @locus Server
+  @summary Set / Get property on current relationship, if only first argument is passed - will return property value, if both arguments is presented - property will be updated or created
+  @name setProperty
+  @class Neo4jRelationship
+  @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-get-single-property-on-a-relationship
+  @url http://neo4j.com/docs/2.2.5/rest-api-node-properties.html#rest-api-set-property-on-node
+  @param {String} name  - Name of the property
+  @param {String} value - [OPTIONAL] Value of the property
+  @returns {Neo4jRelationship | String | Boolean | Number | [String] | [Boolean] | [Number]}
+  ###
+  property: (name, value) ->
+    check name, String
+    return @getProperty name if not value
+    check value, Match.Optional Match.OneOf String, Number, Boolean, [String], [Number], [Boolean]
+    return @setProperty name, value
+
+  ###
+  @locus Server
+  @summary Get one property on current node
+  @name getProperty
+  @class Neo4jRelationship
+  @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-get-single-property-on-a-relationship
+  @param {String} name - Name of the property
+  @returns {String | Boolean | Number | [String] | [Boolean] | [Number]}
+  ###
+  getProperty: (name) -> @__return (fut) => 
+    @update()
+    fut.return @node[name]
 
 
