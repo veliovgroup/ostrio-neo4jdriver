@@ -2108,13 +2108,13 @@ Tinytest.add 'Neo4jRelationship - updateProperties - ({Object})', (test) ->
   r = n1.to n2, "KNOWS", {testRels: true}
   _id = r.get().id
 
-  r.updateProperties {newProp1: 'newPropValue1', newProp2: 'newPropValue2'}
+  r.updateProperties {newProp1: 'newPropValue1', newProp2: 'newPropValue2', testRels: 'asd'}
 
-  __relationCRC__ test, r, n1.get().id, n2.get().id, "KNOWS", {newProp1: 'newPropValue1', newProp2: 'newPropValue2'}
+  __relationCRC__ test, r, n1.get().id, n2.get().id, "KNOWS", {newProp1: 'newPropValue1', newProp2: 'newPropValue2', testRels: 'asd'}
 
   cursor = db.query "MATCH ()-[r]-() WHERE id(r) = {id} RETURN DISTINCT r", {id: _id}
   cursor.each (relation) -> 
-    __relationCRC__ test, relation.r, n1.get().id, n2.get().id, "KNOWS", {newProp1: 'newPropValue1', newProp2: 'newPropValue2'}
+    __relationCRC__ test, relation.r, n1.get().id, n2.get().id, "KNOWS", {newProp1: 'newPropValue1', newProp2: 'newPropValue2', testRels: 'asd'}
 
   test.equal r.delete(), undefined
   test.equal n1.delete(), undefined
