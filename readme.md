@@ -3,8 +3,8 @@
  - __This is server-side only package, to retrieve data from the client use [call(s)](http://docs.meteor.com/#/full/meteor_call) and [methods](http://docs.meteor.com/#/full/meteor_methods)__
  - This package uses [batch operations](http://neo4j.com/docs/2.2.5/rest-api-batch-ops.html) to perform queries, than means if you sending multiple queries to Neo4j in current event loop, all of them will be sent in closest (next) event loop inside of the one batch
  - This package was tested and works like a charm with [GrapheneDB](http://www.graphenedb.com)
- - Please see demo hosted on [Meteor (Powered by GrapheneDB)](http://neo4j-graph.meteor.com) and on ~~[Heroku]()~~
- - To find more about how to use Cypher read [Neo4j cheat sheet](http://neo4j.com/docs/2.2.5/cypher-refcard/)
+ - Please see demo hosted on [Meteor (GrapheneDB)](http://neo4j-graph.meteor.com) and on [Heroku (GrapheneDB Add-on)](http://neo4j-graph.herokuapp.com)
+ - To find more about how to use Cypher read [Neo4j cheat sheet](http://neo4j.com/docs/2.2.5/cypher-refcard)
 
 See also [Isomorphic Reactive Driver](https://github.com/VeliovGroup/ostrio-Neo4jreactivity).
 
@@ -16,7 +16,7 @@ meteor add ostrio:neo4jdriver
 
 Demo Apps
 =======
- - [__Graph, nodes and relationships__](http://neo4j-graph.meteor.com/)
+ - [__Graph, nodes and relationships__](http://neo4j-graph.meteor.com)
 
 API
 =======
