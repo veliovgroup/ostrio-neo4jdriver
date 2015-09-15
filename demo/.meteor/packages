@@ -10,3 +10,5 @@ twbs:bootstrap
 audit-argument-checks
 mquandalle:jade
 ostrio:neo4jdriver
+reactive-var
+ostrio:templatehelpers

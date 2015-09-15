@@ -1,0 +1,139 @@
+head
+  link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.8.1/vis.min.css")
+  script(type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.8.1/vis.min.js")
+
+body
+  .navbar.navbar-default
+    .container-fluid
+      .navbar-header
+        span.navbar-brand Neo4jDriver for meteor Example
+  .container
+    .col-md-12
+      +main
+
+template(name="main")
+  .panel.panel-default
+    .panel-heading
+      h3.panel-title Add/Remove/Change Nodes
+    .panel-body#graph(style="padding:0px")
+    table.table
+      tbody
+        tr
+          td(width="40%")
+            if nodeFrom
+              form#editNode
+                .panel.panel-default
+                  .panel-heading
+                    h5.panel-title Edit / Remove node
+                  .panel-body
+                    .form-group
+                      label(for="name") Name
+                      input.form-control(name="name" placeholder="Type new node name" maxlength="16" value="{{nodeFrom.name}}")
+                    .form-group
+                      label(for="label") Select Label
+                      select.form-control(name="label")
+                        option(value="Person" selected="{{#if isLabel 'Person' nodeFrom}}selected{{/if}}") Person
+                        option(value="Place" selected="{{#if isLabel 'Place' nodeFrom}}selected{{/if}}") Place
+                        option(value="Movie" selected="{{#if isLabel 'Movie' nodeFrom}}selected{{/if}}") Movie
+                    .form-group
+                      label(for="description") Description
+                      textarea.form-control(name="description") {{nodeFrom.description}}
+                  .panel-footer
+                    .btn-group-vertical(style="width:100%")
+                      button.btn.btn-block.btn-primary(type="submit") Update Node
+                      unless getNodeDegree nodeFrom
+                        button.btn.btn-block.btn-danger#deleteNode(type="button") Delete Node
+                      else
+                        button.btn.btn-block.btn-danger.disabled(type="button" disabled="disabled") Delete Node
+              
+            else
+              form#createNode
+                .panel.panel-default
+                  .panel-heading
+                    h5.panel-title Please select Node, or create new one:
+                  .panel-body
+                    .form-group
+                      label(for="name") Name
+                      input.form-control(name="name" placeholder="Type new node name" maxlength="16")
+                    .form-group
+                      label(for="label") Select Label
+                      select.form-control(name="label")
+                        option(value="Person") Person
+                        option(value="Place") Place
+                        option(value="Movie") Movie
+                    .form-group
+                      label(for="description") Description
+                      textarea.form-control(name="description")
+                  .panel-footer
+                    button.btn.btn-block.btn-success(type="submit") Create Node
+
+          td(width="30%")
+            if compare nodeFrom 'and' nodeTo
+              form#createRelationship
+                .panel.panel-default
+                  .panel-heading
+                    h5.panel-title Create relationship between nodes
+                  .panel-body
+                    .form-group
+                      label(for="type") Select relationship type
+                      select.form-control(name="type")
+                        option(value="KNOWS") KNOWS
+                        option(value="FRIENDS") FRIENDS
+                        option(value="LIKES") LIKES
+                        option(value="HATES") HATES
+                        option(value="FOLLOWS") FOLLOWS
+                        option(value="FILMED AT") FILMED AT
+                        option(value="LIVES AT") LIVES AT
+                      .form-group
+                        label(for="description") Description
+                        textarea.form-control(name="description")
+                  .panel-footer
+                    button.btn.btn-block.btn-success(type="submit") Create Relationship
+            else if relationship
+              form#updateRelationship
+                .panel.panel-default
+                  .panel-heading
+                    h5.panel-title Update relationship between nodes
+                  .panel-body
+                    .form-group
+                      label(for="type") Select relationship type
+                      select.form-control(name="type")
+                        option(value="KNOWS" selected="{{#if compare relationship.type 'is' 'KNOWS'}}selected{{/if}}") KNOWS
+                        option(value="FRIENDS" selected="{{#if compare relationship.type 'is' 'FRIENDS'}}selected{{/if}}") FRIENDS
+                        option(value="LIKES" selected="{{#if compare relationship.type 'is' 'LIKES'}}selected{{/if}}") LIKES
+                        option(value="HATES" selected="{{#if compare relationship.type 'is' 'HATES'}}selected{{/if}}") HATES
+                        option(value="FOLLOWS" selected="{{#if compare relationship.type 'is' 'FOLLOWS'}}selected{{/if}}") FOLLOWS
+                        option(value="FILMED AT" selected="{{#if compare relationship.type 'is' 'FILMED AT'}}selected{{/if}}") FILMED AT
+                        option(value="LIVES AT" selected="{{#if compare relationship.type 'is' 'LIVES AT'}}selected{{/if}}") LIVES AT
+                      .form-group
+                        label(for="description") Description
+                        textarea.form-control(name="description") {{relationship.description}}
+                  .panel-footer
+                    .btn-group-vertical(style="width:100%")
+                      button.btn.btn-block.btn-primary(type="submit") Update Relationship
+                      button.btn.btn-block.btn-danger#deleteRelationship(type="button") Delete Relationship
+
+          td(width="30%")
+            if nodeTo
+              .panel.panel-default
+                .panel-heading
+                  h5.panel-title Second node data
+                table.table.table-bordered.table-striped
+                  tbody
+                    tr
+                      td 
+                        b Name
+                      td {{nodeTo.name}}
+                    tr
+                      td
+                        b Label(s)
+                      td 
+                        each nodeTo.labels
+                          | {{this}}
+                    tr
+                      td
+                        b Description
+                      td {{{nl2br nodeTo.description}}}
+
+            if compare nodeFrom '&!' nodeTo
+              .alert.alert-info Select second node to create relationship
