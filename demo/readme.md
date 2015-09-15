@@ -1,19 +1,21 @@
 Demo app
 ======
+__Links:__
+ - __[Meteor hosted](http://neo4j-graph.meteor.com)__
+ - __[Heroku hosted](http://neo4j-graph.herokuapp.com)__
 
+__Functionality:__
  - Create / Change / Remove nodes
  - Create / Change / Remove relationships
  - Graph visualization (by [visjs](http://visjs.org/))
  - Latency compensation (on [visjs](http://visjs.org/) level, but we wait for server response)
  - Client synchronization with minimal delay
  - Exception-less conflicts UX-workflow
- - __[Meteor hosted](http://neo4j-graph.meteor.com)__
- - __[Heroku hosted](http://neo4j-graph.herokuapp.com)__
  - Both examples powered by [GrapheneDB](http://www.graphenedb.com)
 
 Set up Neo4j
 ======
-Locally:
+__Locally:__
  - [Download Neo4j](http://neo4j.com/download/)
  - In Terminal go to downloads folder and type `tar -xf <downloaded filename> -C ~/neo4j/`
  - Start Neo4j: `~/neo4j/bin/neo4j start`
@@ -21,12 +23,12 @@ Locally:
  - Go to `server/main.coffee`, change credentials to your instance of Neo4j
  - [Further reading](http://neo4j.com/docs/stable/server-installation.html)
 
-GrapheneDB:
+__GrapheneDB:__
  - Go to [GrapheneDB](http://www.graphenedb.com), create an account and free (or paid) plan DB
  - Get DB's credentials from "DATABASES" > "Connection" tab
  - Go to `server/main.coffee`, change credentials to your instance of Neo4j
 
-Heroku GrapheneDB Add-on:
+__Heroku GrapheneDB Add-on:__
  - From dashboard go to your app
  - On "Resouces" tab type in "Add-ons" section: `graphenedb`
  - Select plan and proceed through further steps
@@ -35,6 +37,7 @@ Heroku GrapheneDB Add-on:
 
 Deploy to Meteor
 ======
+ - Set up Neo4j - *see sections above*
  - From Meteor's application directory run:
 ```shell
 meteor deploy <your-app-name>.meteor.com
@@ -46,7 +49,7 @@ Deploy to Heroku
  - Go though [Node.js Tutorial](https://devcenter.heroku.com/articles/getting-started-with-nodejs)
  - Install [Heroku Toolbet](https://devcenter.heroku.com/articles/getting-started-with-nodejs#set-up)
  - Set up Neo4j - *see sections above*
- - Then go to Terminal into Meteor's project directory
+ - Then go to Terminal into Meteor's project directory and run:
 ```shell
 meteor build ../build-<your-app-name>
 cd ../build-<your-app-name>
@@ -69,3 +72,7 @@ heroku config:set ROOT_URL=http://<your-app-name>.herokuapp.com
 git commit -m "initial"
 git push heroku master
 ```
+ - Go to `http://<your-app-name>.herokuapp.com`
+ - If you app has errors:
+   * Check logs: `heroku logs --tail`
+   * Try to run locally and debug: `heroku run node`
