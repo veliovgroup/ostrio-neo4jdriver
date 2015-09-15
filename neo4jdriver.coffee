@@ -559,7 +559,7 @@ class Neo4jDB
     for task in tasks
       check task.method, Match.OneOf 'POST', 'GET', 'PUT', 'DELETE', 'HEAD'
       check task.to, String
-      check task.body, Match.Optional Match.OneOf Object, String, Number
+      check task.body, Match.Optional Match.OneOf Object, String, Number, Boolean, [String], [Number], [Boolean], [Object]
 
       task.id ?= Math.floor(Math.random()*(999999999-1+1)+1)
       ids.push task.id
