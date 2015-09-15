@@ -39,6 +39,7 @@ Meteor.startup ->
               type: r.type
               label: r.type
               arrows: 'to'
+              group: r.type
             edges[r.id] = _.extend edge, r.properties
 
       visGraph.edges = (value for key, value of edges)
@@ -94,8 +95,8 @@ Meteor.startup ->
       r = n1.to(n2, form.type, {description: form.description}).get()
       r.from    = r.start
       r.to      = r.end
-      r.type    = r.type
       r.label   = r.type
+      r.group   = r.type
       r.arrows  = 'to'
       r
 
@@ -128,8 +129,8 @@ Meteor.startup ->
         r = n1.to(n2, form.type, {description: form.description}).get()
         r.from    = r.start
         r.to      = r.end
-        r.type    = r.type
         r.label   = r.type
+        r.group   = r.type
         r.arrows  = 'to'
         r
       else
