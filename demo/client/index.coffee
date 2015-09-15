@@ -14,6 +14,22 @@ Template.main.onCreated ->
   @nodeFrom = new ReactiveVar false
   @nodeTo = new ReactiveVar false
   @relationship = new ReactiveVar false
+  @resetNodes = (type = false) =>
+    switch type
+      when false
+        @nodesDS.update {id:@nodeFrom.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeFrom.get() and @_nodes[@nodeFrom.get().id]
+        @nodesDS.update {id:@nodeTo.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeTo.get() and @_nodes[@nodeTo.get().id]
+        @nodeFrom.set false
+        @nodeTo.set false
+      when 'to'
+        @nodesDS.update {id:@nodeTo.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeTo.get() and @_nodes[@nodeTo.get().id]
+        @nodeTo.set false
+      when 'from'
+        @nodesDS.update {id:@nodeFrom.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeFrom.get() and @_nodes[@nodeFrom.get().id]
+        @nodeFrom.set false
+      when 'edge'
+        @edgesDS.update {id: @relationship.get().id, font: { background: "rgba(255,255,255,.0)" }} if @relationship.get() and @_edges[@relationship.get().id]
+        @relationship.set false
 
 Template.main.helpers
   nodeFrom: -> Template.instance().nodeFrom.get()
@@ -40,9 +56,8 @@ Template.main.events
         else
           template.nodesDS.remove id
           delete template._nodes[id]
-          template.nodeFrom.set false
-          template.nodeTo.set false
-          template.relationship.set false
+          template.resetNodes()
+          template.resetNodes('edge')
     false
 
   'submit form#createNode': (e, template) ->
@@ -80,6 +95,8 @@ Template.main.events
           template._nodes[node.id] = node
           template.$(e.currentTarget).find(':submit').text('Update Node').prop('disabled', false)
           $(e.currentTarget)[0].reset()
+          template.resetNodes()
+          template.resetNodes('edge')
     false
 
   'submit form#createRelationship': (e, template) ->
@@ -99,6 +116,8 @@ Template.main.events
           template._edges[edge.id] = edge
           template.$(e.currentTarget).find(':submit').text('Create Relationship').prop('disabled', false)
           $(e.currentTarget)[0].reset()
+          template.resetNodes()
+          template.resetNodes('edge')
     false
 
   'submit form#updateRelationship': (e, template) ->
@@ -115,17 +134,18 @@ Template.main.events
       Meteor.call 'updateRelationship', form, (error, edge) ->
         if error
           throw new Meteor.Error error
-        else
+        else if _.isObject edge
           # As in Neo4j no way to change relationship `type`
           # We will create new one and replace it
           template.edgesDS.remove id
           delete template._edges[id]
-
           template.edgesDS.add edge
           template._edges[edge.id] = edge
-          template.$(e.currentTarget).find(':submit').text('Update Relationship').prop('disabled', false)
-          $(e.currentTarget)[0].reset()
-          template.relationship.set false
+
+        template.$(e.currentTarget).find(':submit').text('Update Relationship').prop('disabled', false)
+        $(e.currentTarget)[0].reset()
+        template.resetNodes()
+        template.resetNodes('edge')
     false
 
   'click button#deleteRelationship': (e, template) ->
@@ -139,7 +159,8 @@ Template.main.events
       else
         template.edgesDS.remove id
         delete template._edges[id]
-        template.relationship.set false
+        template.resetNodes()
+        template.resetNodes('edge')
     false
 
 Template.main.onRendered ->
@@ -168,27 +189,9 @@ Template.main.onRendered ->
 
   @Network = new vis.Network container, data, options
 
-  resetNodes = (type = false) =>
-    switch type
-      when false
-        @nodesDS.update {id:@nodeFrom.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeFrom.get()
-        @nodesDS.update {id:@nodeTo.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeTo.get()
-        @nodeFrom.set false
-        @nodeTo.set false
-      when 'to'
-        @nodesDS.update {id:@nodeTo.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeTo.get()
-        @nodeTo.set false
-      when 'from'
-        @nodesDS.update {id:@nodeFrom.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeFrom.get()
-        @nodeFrom.set false
-      when 'edge'
-        @edgesDS.update {id: @relationship.get().id, font: { background: "rgba(255,255,255,.0)" }}
-        @relationship.set false
-
-
   @Network.addEventListener 'click', (data) =>
     if @relationship.get()
-      resetNodes 'edge'
+      @resetNodes 'edge'
 
     if data?.nodes?[0]
       unless @nodeFrom.get()
@@ -201,44 +204,54 @@ Template.main.onRendered ->
           @nodeTo.set @_nodes[data.nodes[0]]
 
       else if @nodeFrom.get() and @nodeTo.get()
-        resetNodes()
+        @resetNodes()
 
         @nodesDS.update {id: data.nodes[0], font: { background: "#FBFD70" }}
         @nodeFrom.set @_nodes[data.nodes[0]]
 
     else if data?.edges?[0]
-      resetNodes()
+      @resetNodes()
 
       @edgesDS.update {id: data.edges[0], font: { background: "#FBFD70" }}
       @relationship.set @_edges[data.edges[0]]
 
     else if not data?.nodes?[0] and not data?.edges?[0]
-      resetNodes()
+      @resetNodes()
 
   lastTimestamp = 0
   fetchData = =>
-    Meteor.call 'graph', lastTimestamp, (error, data) =>
+    Meteor.call 'graph', lastTimestamp - 250, (error, data) =>
       if error
         throw new Meteor.Error error
       else
-        lastTimestamp = +new Date
         for node in data.nodes
-          if @_nodes?[node.id]
-            @nodesDS.update node
+          if node.removed
+            if @_nodes?[node.id]
+              @nodesDS.remove node.id
+              delete @_nodes[node.id]
           else
-            @nodesDS.add [node]
-          @_nodes[node.id] = node
+            if @_nodes?[node.id]
+              @nodesDS.update node
+            else
+              @nodesDS.add [node]
+            @_nodes[node.id] = node
 
         for edge in data.edges
-          if @_edges?[edge.id]
-            @edgesDS.update edge
+          if edge.removed
+            if @_edges?[edge.id]
+              @edgesDS.remove edge.id
+              delete @_edges[node.id]
           else
-            @edgesDS.add [edge]
-          @_edges[edge.id] = edge
+            if @_edges?[edge.id]
+              @edgesDS.update edge
+            else
+              @edgesDS.add [edge]
+            @_edges[edge.id] = edge
 
       ###
       Set up long-polling
       ###
       Meteor.setTimeout fetchData, 1500
+    lastTimestamp = +new Date
 
   fetchData()
