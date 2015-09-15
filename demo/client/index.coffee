@@ -1,3 +1,71 @@
+MainTemplate = {}
+VIS_OPTIONS =
+  height: '500px'
+  nodes:
+    shape: 'circle'
+    scaling:
+      min: 30
+      max: 30
+  edges: font: align: 'middle'
+  interaction:
+    hover: true
+    hoverConnectedEdges: false
+    navigationButtons: false
+    selectConnectedEdges: false
+  physics: stabilization: false
+
+VIS_PREVIEW_OPTIONS = 
+  height: '75px'
+  physics: false
+  interaction:
+    hover: false
+    selectable: false
+
+clearNetwork = (template) ->
+  template.Network.destroy() if template.Network
+  template.nodesDS.clear() if template.nodesDS
+  template.edgesDS.clear() if template.edgesDS
+
+makeFakeRelation = (template, from, to, container) ->
+  ###
+  As vis.js uses global DataSet, and we unable to add nodes with same id
+  We set temp ids for preview nodes
+  ###
+  template.rid = Random.id()
+  template.fromId = Random.id()
+  _from = _.clone from
+  _from.id = template.fromId
+  _from.x = -150
+  _from.y = 0
+
+  template.toId = Random.id()
+  _to = _.clone to
+  _to.id = template.toId
+  _to.x = 150
+  _to.y = 0
+
+  if template.relationship
+    template.relationship.from = template.fromId
+    template.relationship.to = template.toId
+    template.relationship.id = template.rid
+  else
+    template.relationship = 
+      from: template.fromId
+      to: template.toId
+      id: template.rid
+      label: 'KNOWS'
+      group: 'KNOWS'
+      arrows: 'to'
+
+  template.edgesDS = new vis.DataSet [template.relationship]
+  template.nodesDS = new vis.DataSet [_from, _to]
+
+  data = {nodes: template.nodesDS, edges: template.edgesDS}
+  template.Network = new vis.Network container, data, _.extend VIS_OPTIONS, VIS_PREVIEW_OPTIONS
+
+###
+Create `nl2br` global helper on startup
+###
 Meteor.startup ->
   Template.registerHelper 'nl2br', (string) ->
     if string and not _.isEmpty string
@@ -5,7 +73,11 @@ Meteor.startup ->
     else
       undefined
 
+###
+Template.main
+###
 Template.main.onCreated ->
+  MainTemplate = @
   @_nodes = {}
   @nodesDS = []
   @_edges = {}
@@ -32,9 +104,9 @@ Template.main.onCreated ->
         @relationship.set false
 
 Template.main.helpers
+  hasSelection: -> !!(Template.instance().nodeFrom.get() or Template.instance().nodeTo.get() or Template.instance().relationship.get())
   nodeFrom: -> Template.instance().nodeFrom.get()
   nodeTo: -> Template.instance().nodeTo.get()
-  relationship: -> Template.instance().relationship.get()
   getNodeDegree: (node) -> 
     degree = 0
     for key, e of Template.instance()._edges
@@ -42,6 +114,7 @@ Template.main.helpers
         ++degree
     degree
   isLabel: (label, node) -> !!~node.labels.indexOf label
+  relationship: -> Template.instance().relationship.get()
 
 Template.main.events
   'click button#deleteNode': (e, template) ->
@@ -99,95 +172,13 @@ Template.main.events
           template.resetNodes('edge')
     false
 
-  'submit form#createRelationship': (e, template) ->
-    e.preventDefault()
-    template.$(e.currentTarget).find(':submit').text('Creating...').prop('disabled', true)
-    form = 
-      type: e.target.type.value
-      description: e.target.description.value
-      from: template.nodeFrom.get().id
-      to: template.nodeTo.get().id
-    if e.target.type.value.length > 0
-      Meteor.call 'createRelationship', form, (error, edge) ->
-        if error
-          throw new Meteor.Error error
-        else
-          template.edgesDS.add edge
-          template._edges[edge.id] = edge
-          template.$(e.currentTarget).find(':submit').text('Create Relationship').prop('disabled', false)
-          $(e.currentTarget)[0].reset()
-          template.resetNodes()
-          template.resetNodes('edge')
-    false
-
-  'submit form#updateRelationship': (e, template) ->
-    e.preventDefault()
-    template.$(e.currentTarget).find(':submit').text('Updating...').prop('disabled', true)
-    id = template.relationship.get().id
-    form = 
-      id: id
-      type: e.target.type.value
-      description: e.target.description.value
-      from: template.relationship.get().from
-      to: template.relationship.get().to
-    if e.target.type.value.length > 0
-      Meteor.call 'updateRelationship', form, (error, edge) ->
-        if error
-          throw new Meteor.Error error
-        else if _.isObject edge
-          # As in Neo4j no way to change relationship `type`
-          # We will create new one and replace it
-          template.edgesDS.remove id
-          delete template._edges[id]
-          template.edgesDS.add edge
-          template._edges[edge.id] = edge
-
-        template.$(e.currentTarget).find(':submit').text('Update Relationship').prop('disabled', false)
-        $(e.currentTarget)[0].reset()
-        template.resetNodes()
-        template.resetNodes('edge')
-    false
-
-  'click button#deleteRelationship': (e, template) ->
-    e.preventDefault()
-    e.currentTarget.textContent = 'Removing...'
-    e.currentTarget.disabled = true
-    id = template.relationship.get().id
-    Meteor.call 'deleteRelationship', id, (error, edge) ->
-      if error
-        throw new Meteor.Error error
-      else
-        template.edgesDS.remove id
-        delete template._edges[id]
-        template.resetNodes()
-        template.resetNodes('edge')
-    false
-
 Template.main.onRendered ->
-
   container = document.getElementById 'graph'
-
   @nodesDS = new vis.DataSet []
   @edgesDS = new vis.DataSet []
   data = {nodes: @nodesDS, edges: @edgesDS}
-  options =
-    height: '400px'
-    nodes:
-      shape: 'dot'
-      scaling:
-        min: 10
-        max: 30
-        label:
-          min: 8
-          max: 30
-          drawThreshold: 12
-          maxVisible: 20
-    interaction:
-      hover: true
-      navigationButtons: false
-    physics: stabilization: false
 
-  @Network = new vis.Network container, data, options
+  @Network = new vis.Network container, data, VIS_OPTIONS
 
   @Network.addEventListener 'click', (data) =>
     if @relationship.get()
@@ -255,3 +246,107 @@ Template.main.onRendered ->
     lastTimestamp = +new Date
 
   fetchData()
+
+
+###
+Template.createRelationship
+###
+Template.createRelationship.onRendered ->
+  @from = MainTemplate.nodeFrom.get()
+  @to = MainTemplate.nodeTo.get()
+  makeFakeRelation @, @from, @to, document.getElementById 'createRelPreview'
+
+Template.createRelationship.onDestroyed -> clearNetwork @
+
+Template.createRelationship.events
+  'submit form#createRelationship': (e, template) ->
+    e.preventDefault()
+    template.$(e.currentTarget).find(':submit').text('Creating...').prop('disabled', true)
+    form = 
+      type: e.target.type.value
+      description: e.target.description.value
+      from: template.from.id
+      to: template.to.id
+    if e.target.type.value.length > 0
+      Meteor.call 'createRelationship', form, (error, edge) ->
+        if error
+          throw new Meteor.Error error
+        else
+          MainTemplate.edgesDS.add edge
+          MainTemplate._edges[edge.id] = edge
+          template.$(e.currentTarget).find(':submit').text('Create Relationship').prop('disabled', false)
+          $(e.currentTarget)[0].reset()
+          MainTemplate.resetNodes()
+          MainTemplate.resetNodes('edge')
+    false
+
+  'change select#type': (e, template) ->
+    template.relationship.label = e.target.value
+    template.relationship.group = e.target.value
+    template.edgesDS.update template.relationship
+
+###
+Template.updateRelationship
+###
+Template.updateRelationship.onRendered ->
+  @autorun =>
+    clearNetwork @
+    if MainTemplate.relationship.get()
+      @relationship = _.clone MainTemplate.relationship.get()
+      makeFakeRelation @, MainTemplate._nodes[@relationship.from], MainTemplate._nodes[@relationship.to], document.getElementById 'updateRelPreview'
+
+Template.updateRelationship.onDestroyed -> clearNetwork @
+
+Template.updateRelationship.helpers
+  relationship: -> MainTemplate.relationship.get()
+
+Template.updateRelationship.events
+  'submit form#updateRelationship': (e, template) ->
+    e.preventDefault()
+    _r = MainTemplate.relationship.get()
+    id = _r.id
+    form = 
+      id: id
+      type: e.target.type.value
+      description: e.target.description.value
+      from: _r.from
+      to: _r.to
+
+    if form.type.length > 0 and (_r.type isnt form.type or _r.description isnt form.description)
+      template.$(e.currentTarget).find(':submit').text('Updating...').prop('disabled', true)
+      Meteor.call 'updateRelationship', form, (error, edge) ->
+        if error
+          throw new Meteor.Error error
+        else if _.isObject edge
+          # As in Neo4j no way to change relationship `type`
+          # We will create new one and replace it
+          MainTemplate.edgesDS.remove id
+          delete MainTemplate._edges[id]
+          MainTemplate.edgesDS.add edge
+          MainTemplate._edges[edge.id] = edge
+
+        template.$(e.currentTarget).find(':submit').text('Update Relationship').prop('disabled', false)
+        $(e.currentTarget)[0].reset()
+        MainTemplate.resetNodes()
+        MainTemplate.resetNodes('edge')
+    false
+
+  'click button#deleteRelationship': (e, template) ->
+    e.preventDefault()
+    e.currentTarget.textContent = 'Removing...'
+    e.currentTarget.disabled = true
+    id = MainTemplate.relationship.get().id
+    Meteor.call 'deleteRelationship', id, (error, edge) ->
+      if error
+        throw new Meteor.Error error
+      else
+        MainTemplate.edgesDS.remove id
+        delete MainTemplate._edges[id]
+        MainTemplate.resetNodes()
+        MainTemplate.resetNodes('edge')
+    false
+
+  'change select#type': (e, template) ->
+    template.relationship.label = e.target.value
+    template.relationship.group = e.target.value
+    template.edgesDS.update template.relationship

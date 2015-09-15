@@ -1,0 +1,22 @@
+template(name="createRelationship")
+  form#createRelationship
+    .panel.panel-success
+      .panel-heading
+        h5.panel-title Create relationship between nodes
+      .panel-body#createRelPreview(style="padding:0px")
+      .panel-body
+        .form-group
+          label(for="type") Select relationship type
+          select.form-control#type(name="type")
+            option(value="KNOWS") KNOWS
+            option(value="FRIENDS") FRIENDS
+            option(value="LIKES") LIKES
+            option(value="HATES") HATES
+            option(value="FOLLOWS") FOLLOWS
+            option(value="FILMED AT") FILMED AT
+            option(value="LIVES AT") LIVES AT
+          .form-group
+            label(for="description") Description
+            textarea.form-control(name="description")
+      .panel-footer
+        button.btn.btn-block.btn-success(type="submit") Create Relationship

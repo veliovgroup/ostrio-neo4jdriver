@@ -1,0 +1,24 @@
+template(name="updateRelationship")
+  form#updateRelationship
+    .panel.panel-primary
+      .panel-heading
+        h5.panel-title Update relationship between nodes
+      .panel-body#updateRelPreview(style="padding:0px")
+      .panel-body
+        .form-group
+          label(for="type") Select relationship type
+          select.form-control#type(name="type")
+            option(value="KNOWS" selected="{{#if compare relationship.type 'is' 'KNOWS'}}selected{{/if}}") KNOWS
+            option(value="FRIENDS" selected="{{#if compare relationship.type 'is' 'FRIENDS'}}selected{{/if}}") FRIENDS
+            option(value="LIKES" selected="{{#if compare relationship.type 'is' 'LIKES'}}selected{{/if}}") LIKES
+            option(value="HATES" selected="{{#if compare relationship.type 'is' 'HATES'}}selected{{/if}}") HATES
+            option(value="FOLLOWS" selected="{{#if compare relationship.type 'is' 'FOLLOWS'}}selected{{/if}}") FOLLOWS
+            option(value="FILMED AT" selected="{{#if compare relationship.type 'is' 'FILMED AT'}}selected{{/if}}") FILMED AT
+            option(value="LIVES AT" selected="{{#if compare relationship.type 'is' 'LIVES AT'}}selected{{/if}}") LIVES AT
+          .form-group
+            label(for="description") Description
+            textarea.form-control(name="description") {{relationship.description}}
+      .panel-footer
+        .btn-group-vertical(style="width:100%")
+          button.btn.btn-block.btn-primary(type="submit") Update Relationship
+          button.btn.btn-block.btn-danger#deleteRelationship(type="button") Delete Relationship
