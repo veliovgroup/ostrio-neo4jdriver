@@ -1,0 +1,171 @@
+$select-bg: url('/images/select.png')
+$black: #333
+$danger: #d9534f
+.danger
+  color: $danger
+$success: #5cb85c
+.success
+  color: $success
+$warning: #f0ad4e
+.warning
+  color: $warning
+$primary: #337ab7
+.primary
+  color: $primary
+$info: #5bc0de
+.info
+  color: $info
+
+.gh-ribbon
+  position: absolute
+  top: 0
+  right: 0
+  border: 0
+  z-index: 10
+  height: 120px
+  width: 120px
+
+.center
+  text-align: center
+  vertical-align: middle
+
+.important
+  text-transform: uppercase
+
+.btn.disabled, .btn[disabled], fieldset[disabled] .btn
+  opacity: 0.777
+  &:focus, &:hover
+    opacity: 0.777
+
+.btn-group
+  .btn + .btn
+    margin-left: -2px
+
+.btn
+  transition: all .15s ease-in-out
+  border-width: 2px
+  background: none
+  border-color: #ccc
+  color: #555
+  &.btn-
+    &success
+      &:focus, &:hover
+        color: darken($success, 35%)
+        border-color: darken($success, 15%)
+    &primary
+      &:focus, &:hover
+        color: darken($primary, 35%)
+        border-color: darken($primary, 15%)
+    &danger
+      &:focus, &:hover
+        color: darken($danger, 35%)
+        border-color: darken($danger, 15%)
+    &info
+      &:focus, &:hover
+        color: darken($info, 35%)
+        border-color: darken($info, 20%)
+    &warning
+      &:focus, &:hover
+        color: darken($warning, 35%)
+        border-color: darken($warning, 15%)
+    &default
+      &:focus, &:hover
+        color: #000
+        border-color: #333
+
+  &:hover,
+  &:focus,
+  &.focus,
+  &:active,
+  &.active
+    background: rgba(0,0,0, 0.0777)
+    outline: none !important
+
+.alert.compact
+  padding: 5px 10px
+  margin: 5px 0px
+
+.alert
+  border-radius: 0px
+  border-width: 0px 0px 0px 4px
+  &.alert-info
+    border-left-color: darken($info, 25%)
+    background-color: transparentize( darken($info, 15%), 0.95 )
+
+  &.alert-danger
+    border-left-color: darken($danger, 25%)
+    background-color: transparentize( darken($danger, 15%), 0.95 )
+
+  &.alert-warning
+    border-left-color: darken($warning, 25%)
+    background-color: transparentize( darken($warning, 15%), 0.95 )
+
+  &.alert-success
+    border-left-color: darken($success, 25%)
+    background-color: transparentize( darken($success, 15%), 0.95 )
+
+  &.alert-primary
+    color: $primary
+    border-left-color: darken($primary, 25%)
+    background-color: transparentize( darken($primary, 15%), 0.95 )
+
+.panel, .panel-heading, .panel-footer
+  border-radius: 0px
+
+select.form-control
+  appearance: none
+  -webkit-appearance: none
+  -moz-appearance: none
+  display:inline-block
+  background: $select-bg no-repeat 99%
+input, textarea, select, 
+  &.form-control
+    transition: border-width .333s ease-in-out, border-color .333s ease-in-out, background .333s ease-in-out, box-shadow .333s ease-in-out
+    background-color: transparentize( $black, 0.97 )
+    border-width: 0px 0px 0px 2px
+    color: darken( $black, 15% )
+    border-color: $black
+    border-radius: 0px
+    margin: 0px 0px 5px 0px
+
+    &:focus
+      box-shadow: none
+      border-width: 0px 0px 0px 7px
+      border-color: lighten( $black, 5% )
+      color: darken( $black, 25% )
+      background-color: transparentize( $black, 0.9 )
+
+.panel-
+  &info
+    input, textarea, select, 
+      &.form-control
+        background-color: transparentize( $info, 0.97 )
+        color: darken( $info, 25% )
+        border-color: $info
+        &:focus
+          border-color: lighten( $info, 5% )
+          color: darken( $info, 45% )
+          background-color: transparentize( $info, 0.9 )
+
+  &success
+    input, textarea, select, 
+      &.form-control
+        background-color: transparentize( $success, 0.97 )
+        color: darken( $success, 35% )
+        border-color: $success
+        &:focus
+          border-color: lighten( $success, 5% )
+          color: darken( $success, 45% )
+          background-color: transparentize( $success, 0.9 )
+
+  &primary
+    input, textarea, select, 
+      &.form-control
+        background-color: transparentize( $primary, 0.97 )
+        color: darken( $primary, 35% )
+        border-color: $primary
+        &:focus
+          border-color: lighten( $primary, 5% )
+          color: darken( $primary, 45% )
+          background-color: transparentize( $primary, 0.9 )
+
