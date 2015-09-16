@@ -14,3 +14,4 @@ reactive-var
 ostrio:templatehelpers
 fourseven:scss@0.9.6
 random
+ejson
