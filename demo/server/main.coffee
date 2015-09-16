@@ -45,11 +45,12 @@ Meteor.startup ->
       visGraph.edges = (value for key, value of edges)
       visGraph.nodes = (value for key, value of nodes)
 
-      return visGraph
+      return {updatedAt: +new Date, data: visGraph}
 
     createNode: (form) ->
       check form, Object
-      n = db.nodes({description: form.description, name: form.name, createdAt: +new Date, updatedAt: +new Date}).replaceLabels([form.label]).get()
+      updatedAt = +new Date
+      n = db.nodes({description: form.description, name: form.name, createdAt: updatedAt, updatedAt}).replaceLabels([form.label]).get()
       n.label = n.name
       n.group = n.labels[0]
       n
@@ -57,7 +58,8 @@ Meteor.startup ->
     updateNode: (form) ->
       check form, Object
       form.id = parseInt form.id
-      n = db.nodes(form.id).setProperties({description: form.description, name: form.name, updatedAt: +new Date}).replaceLabels([form.label]).get()
+      updatedAt = +new Date
+      n = db.nodes(form.id).setProperties({description: form.description, name: form.name, updatedAt}).replaceLabels([form.label]).get()
       n.label = n.name
       n.group = n.labels[0]
       n
@@ -70,11 +72,12 @@ Meteor.startup ->
       First we set node to removed state, so all other clients will remove that node on long-polling
       After 30 seconds we will get rid of the node from Neo4j, if it still exists
       ###
+      updatedAt = +new Date
       n = db.nodes(id)
       unless n.property 'removed'
         n.setProperties 
           removed: true
-          updatedAt: +new Date
+          updatedAt: updatedAt
 
         Meteor.setTimeout ->
           n = db.nodes(id)
@@ -87,10 +90,12 @@ Meteor.startup ->
       form.to = parseInt form.to
       form.from = parseInt form.from
 
+      updatedAt = +new Date
+
       n1 = db.nodes(form.from)
       n2 = db.nodes(form.to)
-      n1.setProperty 'updatedAt', +new Date
-      n2.setProperty 'updatedAt', +new Date
+      n1.setProperty {updatedAt}
+      n2.setProperty {updatedAt}
 
       r = n1.to(n2, form.type, {description: form.description}).get()
       r.from    = r.start
@@ -111,10 +116,11 @@ Meteor.startup ->
       If this relationship already marked as removed, then it changed by someone else
       We will just wait for long-polling updates on client
       ###
+      updatedAt = +new Date
       unless oldRel.property 'removed'
         oldRel.setProperties
           removed: true
-          updatedAt: +new Date
+          updatedAt: updatedAt
 
         Meteor.setTimeout ->
           r = db.getRelation(form.id)
@@ -123,8 +129,8 @@ Meteor.startup ->
 
         n1 = db.nodes(form.from)
         n2 = db.nodes(form.to)
-        n1.setProperty 'updatedAt', +new Date
-        n2.setProperty 'updatedAt', +new Date
+        n1.setProperty {updatedAt}
+        n2.setProperty {updatedAt}
 
         r = n1.to(n2, form.type, {description: form.description}).get()
         r.from    = r.start
@@ -142,17 +148,24 @@ Meteor.startup ->
 
       ###
       First we set relationship to removed state, so all other clients will remove that relationship on long-polling
-      After 30 seconds we will get rid of the relationship from Neo4j, if it still exists
+      After 15 seconds we will get rid of the relationship from Neo4j, if it still exists
       ###
+      updatedAt = +new Date
       r = db.getRelation(id)
+      _r = r.get()
+      n1 = db.nodes(_r.start)
+      n2 = db.nodes(_r.end)
+      n1.setProperty {updatedAt}
+      n2.setProperty {updatedAt}
+
       unless r.property 'removed'
         r.setProperties
           removed: true
-          updatedAt: +new Date
+          updatedAt: updatedAt
 
         Meteor.setTimeout ->
           r = db.getRelation(id)
           r.delete() if r?.get?()
-        , 30000
+        , 15000
       true
 
