@@ -119,16 +119,16 @@ Template.main.helpers
 Template.main.events
   'click button#deleteNode': (e, template) ->
     e.preventDefault()
-    if template.nodeFrom.get()
+    _n = template.nodeFrom.get()
+    if _n
       e.currentTarget.textContent = 'Removing...'
       e.currentTarget.disabled = true
-      id = template.nodeFrom.get().id
-      Meteor.call 'deleteNode', id, (error) ->
+      Meteor.call 'deleteNode', _n.id, (error) ->
         if error
           throw new Meteor.Error error
         else
-          template.nodesDS.remove id
-          delete template._nodes[id]
+          template.nodesDS.remove _n.id
+          delete template._nodes[_n.id]
           template.resetNodes()
           template.resetNodes('edge')
     false
@@ -137,14 +137,15 @@ Template.main.events
     e.preventDefault()
     template.$(e.currentTarget).find(':submit').text('Creating...').prop('disabled', true)
     form = 
-      name: e.target.name.value
-      label: e.target.label.value
-      description: e.target.description.value
-    if e.target.name.value.length > 0 and e.target.label.value.length > 0
+      name: "#{e.target.name.value}"
+      label: "#{e.target.label.value}"
+      description: "#{e.target.description.value}"
+    if form.name.length > 0 and form.label.length > 0
       Meteor.call 'createNode', form, (error, node) ->
         if error
           throw new Meteor.Error error
         else
+          console.log node
           template.nodesDS.add node
           template._nodes[node.id] = node
           template.$(e.currentTarget).find(':submit').text('Create Node').prop('disabled', false)
@@ -153,13 +154,14 @@ Template.main.events
 
   'submit form#editNode': (e, template) ->
     e.preventDefault()
-    template.$(e.currentTarget).find(':submit').text('Saving...').prop('disabled', true)
+    _n = template.nodeFrom.get()
     form = 
-      name: e.target.name.value
-      label: e.target.label.value
-      description: e.target.description.value
-      id: template.nodeFrom.get().id
-    if e.target.name.value.length > 0 and e.target.label.value.length > 0
+      name: "#{e.target.name.value}"
+      label: "#{e.target.label.value}"
+      description: "#{e.target.description.value}"
+      id: _n.id
+    if form.name.length > 0 and form.label.length > 0 and (_n.name isnt form.name or _n.description isnt form.description or _n.group isnt form.label)
+      template.$(e.currentTarget).find(':submit').text('Saving...').prop('disabled', true)
       Meteor.call 'updateNode', form, (error, node) ->
         if error
           throw new Meteor.Error error
@@ -211,7 +213,9 @@ Template.main.onRendered ->
 
   lastTimestamp = 0
   fetchData = =>
-    Meteor.call 'graph', lastTimestamp - 250, (error, data) =>
+    Meteor.call 'graph', lastTimestamp, (error, result) =>
+      data = result.data
+      lastTimestamp = result.updatedAt
       if error
         throw new Meteor.Error error
       else
@@ -222,7 +226,19 @@ Template.main.onRendered ->
               delete @_nodes[node.id]
           else
             if @_nodes?[node.id]
-              @nodesDS.update node
+              unless EJSON.equals node, @_nodes[node.id]
+                @nodesDS.update node 
+                @nodeFrom.set node if @nodeFrom.get() and @nodeFrom.get().id is node.id
+                @nodeTo.set node if @nodeTo.get() and @nodeTo.get().id is node.id
+                ###
+                If user currently inspecting / editing relationship, 
+                which somehow includes one of updated nodes - we update inspector state
+                ###
+                r = @relationship.get()
+                if r and (r.from is node.id or r.to is node.id)
+                  _r = _.clone @relationship.get()
+                  _r.updatedAt = lastTimestamp
+                  @relationship.set _r
             else
               @nodesDS.add [node]
             @_nodes[node.id] = node
@@ -232,9 +248,20 @@ Template.main.onRendered ->
             if @_edges?[edge.id]
               @edgesDS.remove edge.id
               delete @_edges[node.id]
+              ###
+              If user currently inspecting / editing relationship, which just was removed
+              We close inspector
+              ###
+              @relationship.set null if @relationship.get() and @relationship.get().id is edge.id
           else
             if @_edges?[edge.id]
-              @edgesDS.update edge
+              unless EJSON.equals edge, @_edges[edge.id]
+                @edgesDS.update edge 
+                ###
+                If user currently inspecting / editing relationship, which just was updated
+                We update inspector
+                ###
+                @relationship.set edge if @relationship.get().id is edge.id
             else
               @edgesDS.add [edge]
             @_edges[edge.id] = edge
@@ -243,7 +270,6 @@ Template.main.onRendered ->
       Set up long-polling
       ###
       Meteor.setTimeout fetchData, 1500
-    lastTimestamp = +new Date
 
   fetchData()
 
