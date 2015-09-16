@@ -225,6 +225,7 @@ Template.main.onRendered ->
       @resetNodes 'edge'
 
     if data?.nodes?[0]
+      data.nodes[0] = parseInt data.nodes[0]
       unless @nodeFrom.get()
         @nodesDS.update {id: data.nodes[0], font: { background: "#FBFD70" }}
         @nodeFrom.set @_nodes[data.nodes[0]]
