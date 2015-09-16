@@ -54,6 +54,12 @@ Deploy to Heroku
 meteor build ../build-<your-app-name>
 cd ../build-<your-app-name>
 tar xvzf <name-of-archive> -C ./
+cd bundle/
+cp -Rf * ../
+cd ../
+rm -Rf 
+rm -Rf bundle/
+rm -Rf <name-of-archive>
 git init 
 git add .
 nano Procfile
