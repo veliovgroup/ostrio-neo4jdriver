@@ -2,55 +2,54 @@ Meteor.startup ->
   db = new Neo4jDB 'http://localhost:7474', {username: 'neo4j', password: '1234'}
 
   unless db.queryOne 'MATCH (n) RETURN n LIMIT 1'
-    db.querySync 'WITH ["Andres","Wes","Rik","Mark","Peter","Kenny","Michael","Stefan","Max","Chris"] AS names FOREACH (r IN range(0,19) | CREATE (:Person {removed: false, updatedAt: timestamp(), createdAt: timestamp(), name:names[r % size(names)]+" "+r}));'
+    db.querySync 'WITH ["Andres","Wes","Rik","Mark","Peter","Kenny","Michael","Stefan","Max","Chris"] AS names FOREACH (r IN range(0,19) | CREATE (:Person {removed: false, updatedAt: timestamp(), name:names[r % size(names)]+" "+r}));'
 
 
   Meteor.methods
     graph: (timestamp = 0) -> 
       check timestamp, Number
-      nodes = []
-      edges = []
+      nodes = {}
+      edges = {}
 
       visGraph = 
         nodes : []
         edges: []
-      graph = db.graph('MATCH (a)-[r]-(b), (n) WHERE n.createdAt >= {timestamp} OR n.updatedAt >= {timestamp} RETURN DISTINCT n, r', {timestamp}).fetch()
+      graph = db.query('MATCH (n) WHERE n.updatedAt >= {timestamp} RETURN DISTINCT n UNION ALL MATCH ()-[n]-() WHERE n.updatedAt >= {timestamp} RETURN DISTINCT n', {timestamp}).fetch()
 
       if graph.length is 0
-        graph = db.graph('MATCH n WHERE n.createdAt >= {timestamp} OR n.updatedAt >= {timestamp} RETURN DISTINCT n', {timestamp}).fetch()
+        updatedAt = timestamp
+      else
+        updatedAt = +new Date
 
-      for row in graph
-        if row.nodes.length > 0
-          for n in row.nodes
-            node = 
-              id: n.id
-              labels: n.labels
-              label: n.properties.name
-              group: n.labels[0]
-            node = _.extend node, n.properties
-            nodes[n.id] = node
+        for row in graph
+          if row?.n and not nodes?[row.n.id]
+            if row.n?.start
+              edge = 
+                id: row.n.id
+                from: row.n.start
+                to: row.n.end
+                type: row.n.type
+                label: row.n.type
+                arrows: 'to'
+                group: row.n.type
+              edges[row.n.id] = _.extend edge, row.n
+            else
+              node = 
+                id: row.n.id
+                labels: row.n.labels
+                label: row.n.name
+                group: row.n.labels[0]
+              nodes[row.n.id] = _.extend node, row.n
 
-        if row.relationships.length > 0
-          for r in row.relationships
-            edge = 
-              id: r.id
-              from: r.startNode or r.start
-              to: r.endNode or r.end
-              type: r.type
-              label: r.type
-              arrows: 'to'
-              group: r.type
-            edges[r.id] = _.extend edge, r.properties
+        visGraph.edges = (value for key, value of edges)
+        visGraph.nodes = (value for key, value of nodes)
 
-      visGraph.edges = (value for key, value of edges)
-      visGraph.nodes = (value for key, value of nodes)
-
-      return {updatedAt: +new Date, data: visGraph}
+      return {updatedAt, data: visGraph}
 
     createNode: (form) ->
       check form, Object
       updatedAt = +new Date
-      n = db.nodes({description: form.description, name: form.name, createdAt: updatedAt, updatedAt}).replaceLabels([form.label]).get()
+      n = db.nodes({description: form.description, name: form.name, updatedAt}).replaceLabels([form.label]).get()
       n.label = n.name
       n.group = n.labels[0]
       n
@@ -94,10 +93,8 @@ Meteor.startup ->
 
       n1 = db.nodes form.from
       n2 = db.nodes form.to
-      n1.setProperty {updatedAt}
-      n2.setProperty {updatedAt}
 
-      r = n1.to(n2, form.type, {description: form.description}).get()
+      r = n1.to(n2, form.type, {description: form.description, updatedAt}).get()
       r.from    = r.start
       r.to      = r.end
       r.label   = r.type
@@ -120,8 +117,6 @@ Meteor.startup ->
       unless oldRel.property 'removed'
         n1 = db.nodes form.from
         n2 = db.nodes form.to
-        n1.setProperty {updatedAt}
-        n2.setProperty {updatedAt}
         if form.type isnt oldRel.get().type
           oldRel.setProperties
             removed: true
@@ -132,7 +127,7 @@ Meteor.startup ->
             r.delete() if r?.get?()
           , 15000
 
-          r = n1.to(n2, form.type, {description: form.description}).get()
+          r = n1.to(n2, form.type, {description: form.description, updatedAt}).get()
         else
           r = oldRel.setProperties({description: form.description, updatedAt}).get()
 
@@ -156,10 +151,6 @@ Meteor.startup ->
       updatedAt = +new Date
       r = db.getRelation id
       _r = r.get()
-      n1 = db.nodes _r.start
-      n2 = db.nodes _r.end
-      n1.setProperty {updatedAt}
-      n2.setProperty {updatedAt}
 
       unless r.property 'removed'
         r.setProperties
