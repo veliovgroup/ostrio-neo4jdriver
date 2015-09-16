@@ -13,6 +13,43 @@ VIS_OPTIONS =
     navigationButtons: false
     selectConnectedEdges: false
   physics: stabilization: false
+  groups:
+    Person:
+      borderWidth: 2
+      mass: 3
+      color: 
+        background: 'rgba(75, 159, 236, 0.95)'
+        border: 'rgba(8, 93, 171, 0.777)'
+        highlight:
+          background: 'rgba(75, 159, 236, 0.75)'
+          border: 'rgba(8, 93, 171, 0.577)'
+        hover:
+          background: 'rgba(75, 159, 236, 0.75)'
+          border: 'rgba(8, 93, 171, 0.577)'
+    Movie:
+      borderWidth: 3
+      mass: 2
+      color: 
+        background: 'rgba(241, 187, 12, 0.95)'
+        border: 'rgba(212, 107, 12, 0.777)'
+        highlight:
+          background: 'rgba(241, 187, 12, 0.75)'
+          border: 'rgba(212, 107, 12, 0.577)'
+        hover:
+          background: 'rgba(241, 187, 12, 0.75)'
+          border: 'rgba(212, 107, 12, 0.577)'
+    Place:
+      borderWidth: 4
+      mass: 1
+      color: 
+        background: 'rgba(230, 66, 66, 0.95)'
+        border: 'rgba(107, 9, 9, 0.777)'
+        highlight:
+          background: 'rgba(230, 66, 66, 0.75)'
+          border: 'rgba(107, 9, 9, 0.577)'
+        hover:
+          background: 'rgba(230, 66, 66, 0.75)'
+          border: 'rgba(107, 9, 9, 0.577)'
 
 VIS_PREVIEW_OPTIONS = 
   height: '75px'
@@ -20,6 +57,7 @@ VIS_PREVIEW_OPTIONS =
   interaction:
     hover: false
     selectable: false
+
 
 clearNetwork = (template) ->
   template.Network.destroy() if template.Network
@@ -260,7 +298,7 @@ Template.main.onRendered ->
                 If user currently inspecting / editing relationship, which just was updated
                 We update inspector
                 ###
-                @relationship.set edge if @relationship.get().id is edge.id
+                @relationship.set edge if @relationship.get() and @relationship.get().id is edge.id
             else
               @edgesDS.add [edge]
             @_edges[edge.id] = edge
