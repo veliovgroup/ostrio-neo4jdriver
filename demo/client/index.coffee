@@ -89,8 +89,8 @@ Template.main.onCreated ->
   @resetNodes = (type = false) =>
     switch type
       when false
-        @nodesDS.update {id:@nodeFrom.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeFrom.get() and @_nodes[@nodeFrom.get().id]
-        @nodesDS.update {id:@nodeTo.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeTo.get() and @_nodes[@nodeTo.get().id]
+        @nodesDS.update {id: @nodeFrom.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeFrom.get() and @_nodes[@nodeFrom.get().id]
+        @nodesDS.update {id: @nodeTo.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeTo.get() and @_nodes[@nodeTo.get().id]
         @nodeFrom.set false
         @nodeTo.set false
       when 'to'
@@ -145,7 +145,6 @@ Template.main.events
         if error
           throw new Meteor.Error error
         else
-          console.log node
           template.nodesDS.add node
           template._nodes[node.id] = node
           template.$(e.currentTarget).find(':submit').text('Create Node').prop('disabled', false)
@@ -247,7 +246,7 @@ Template.main.onRendered ->
           if edge.removed
             if @_edges?[edge.id]
               @edgesDS.remove edge.id
-              delete @_edges[node.id]
+              delete @_edges[edge.id]
               ###
               If user currently inspecting / editing relationship, which just was removed
               We close inspector
