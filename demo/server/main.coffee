@@ -22,24 +22,26 @@ Meteor.startup ->
         updatedAt = +new Date
 
         for row in graph
-          if row?.n and not nodes?[row.n.id]
-            if row.n?.start
-              edge = 
-                id: row.n.id
-                from: row.n.start
-                to: row.n.end
-                type: row.n.type
-                label: row.n.type
-                arrows: 'to'
-                group: row.n.type
-              edges[row.n.id] = _.extend edge, row.n
+          if row?.n
+            if row.n?.start or row.n?.end
+              unless edges?[row.n.id]
+                edge = 
+                  id: row.n.id
+                  from: row.n.start
+                  to: row.n.end
+                  type: row.n.type
+                  label: row.n.type
+                  arrows: 'to'
+                  group: row.n.type
+                edges[row.n.id] = _.extend edge, row.n
             else
-              node = 
-                id: row.n.id
-                labels: row.n.labels
-                label: row.n.name
-                group: row.n.labels[0]
-              nodes[row.n.id] = _.extend node, row.n
+              unless nodes?[row.n.id]
+                node = 
+                  id: row.n.id
+                  labels: row.n.labels
+                  label: row.n.name
+                  group: row.n.labels[0]
+                nodes[row.n.id] = _.extend node, row.n
 
         visGraph.edges = (value for key, value of edges)
         visGraph.nodes = (value for key, value of nodes)
@@ -114,29 +116,30 @@ Meteor.startup ->
       We will just wait for long-polling updates on client
       ###
       updatedAt = +new Date
-      unless oldRel.property 'removed'
-        n1 = db.nodes form.from
-        n2 = db.nodes form.to
-        if form.type isnt oldRel.get().type
-          oldRel.setProperties
-            removed: true
-            updatedAt: updatedAt
+      if oldRel.get()
+        unless oldRel.property 'removed'
+          n1 = db.nodes form.from
+          n2 = db.nodes form.to
+          if form.type isnt oldRel.get().type
+            oldRel.setProperties
+              removed: true
+              updatedAt: updatedAt
 
-          Meteor.setTimeout ->
-            r = db.getRelation form.id
-            r.delete() if r?.get?()
-          , 15000
+            Meteor.setTimeout ->
+              r = db.getRelation form.id
+              r.delete() if r?.get?()
+            , 15000
 
-          r = n1.to(n2, form.type, {description: form.description, updatedAt}).get()
-        else
-          r = oldRel.setProperties({description: form.description, updatedAt}).get()
+            r = n1.to(n2, form.type, {description: form.description, updatedAt}).get()
+          else
+            r = oldRel.setProperties({description: form.description, updatedAt}).get()
 
-        r.from    = r.start
-        r.to      = r.end
-        r.label   = r.type
-        r.group   = r.type
-        r.arrows  = 'to'
-        r
+          r.from    = r.start
+          r.to      = r.end
+          r.label   = r.type
+          r.group   = r.type
+          r.arrows  = 'to'
+          r
       else
         true
 
@@ -150,9 +153,8 @@ Meteor.startup ->
       ###
       updatedAt = +new Date
       r = db.getRelation id
-      _r = r.get()
-
-      unless r.property 'removed'
+      
+      if r.get() and not r.property 'removed'
         r.setProperties
           removed: true
           updatedAt: updatedAt
