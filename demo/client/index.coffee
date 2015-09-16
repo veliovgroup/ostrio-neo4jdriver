@@ -344,11 +344,14 @@ Template.updateRelationship.events
         if error
           throw new Meteor.Error error
         else if _.isObject edge
-          # As in Neo4j no way to change relationship `type`
-          # We will create new one and replace it
-          MainTemplate.edgesDS.remove id
-          delete MainTemplate._edges[id]
-          MainTemplate.edgesDS.add edge
+          if _r.type isnt form.type
+            # As in Neo4j no way to change relationship `type`
+            # We will create new one and replace it
+            MainTemplate.edgesDS.remove id
+            delete MainTemplate._edges[id]
+            MainTemplate.edgesDS.add edge
+          else
+            MainTemplate.edgesDS.update edge
           MainTemplate._edges[edge.id] = edge
 
         template.$(e.currentTarget).find(':submit').text('Update Relationship').prop('disabled', false)
