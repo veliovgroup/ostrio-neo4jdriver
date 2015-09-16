@@ -173,12 +173,13 @@ Template.main.events
 
   'submit form#createNode': (e, template) ->
     e.preventDefault()
-    template.$(e.currentTarget).find(':submit').text('Creating...').prop('disabled', true)
     form = 
       name: "#{e.target.name.value}"
       label: "#{e.target.label.value}"
       description: "#{e.target.description.value}"
+
     if form.name.length > 0 and form.label.length > 0
+      template.$(e.currentTarget).find(':submit').text('Creating...').prop('disabled', true)
       Meteor.call 'createNode', form, (error, node) ->
         if error
           throw new Meteor.Error error
