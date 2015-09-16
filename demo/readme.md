@@ -57,7 +57,6 @@ tar xvzf <name-of-archive> -C ./
 cd bundle/
 cp -Rf * ../
 cd ../
-rm -Rf 
 rm -Rf bundle/
 rm -Rf <name-of-archive>
 git init 
