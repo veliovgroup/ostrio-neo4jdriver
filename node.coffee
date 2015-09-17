@@ -22,11 +22,8 @@ class Neo4jNode extends Neo4jData
         @_id = node.metadata.id
         super @_db.__parseNode(node), @_isReactive
         @_ready = true
-        fut.return @ if fut
-      else
-        fut.return undefined if fut
 
-    @on 'create', (properties, fut) =>
+    @on 'create', (properties) =>
       unless @_ready
         @_db.__batch
           method: 'POST'
@@ -36,20 +33,13 @@ class Neo4jNode extends Neo4jData
           (error, node) =>
             __error error if error
             if node?.metadata
-              @emit 'ready', node, fut
+              @emit 'ready', node
             else
               __error "Node is not created or created wrongly, metadata is not returned!"
         , @_isReactive, true
         return
       else
         __error "You already in node instance, create new one by calling, `db.nodes().create()`"
-        fut.return @
-
-    @on 'apply', =>
-      _arguments = arguments
-      cb = arguments[arguments.length - 1]
-      if @_ready then cb.apply @, _arguments else @once 'ready', => cb.apply @, _arguments
-      return
 
     if _.isObject @_id
       if _.has @_id, 'metadata'
@@ -65,7 +55,7 @@ class Neo4jNode extends Neo4jData
     else
       @emit 'create'
 
-  __return: (cb) -> __wait (fut) => @emit 'apply', fut, (fut) -> cb.call @, fut
+  __return: (cb) -> __wait (fut) => if @_ready then cb.call @, fut else @once 'ready', => cb.call @, fut
 
   ###
   @locus Server
@@ -90,11 +80,9 @@ class Neo4jNode extends Neo4jData
     @_db.__batch 
       method: 'DELETE'
       to: @_service.self.endpoint
-    , 
-      =>
-        @node = undefined
-        fut.return undefined
-    , undefined, true
+    , undefined, false, true
+    @node = undefined
+    fut.return undefined
 
   ###
   @locus Server
@@ -133,9 +121,8 @@ class Neo4jNode extends Neo4jData
         method: 'PUT'
         to: @_service.property.endpoint.replace '{key}', name
         body: value
-      , 
-        => fut.return @
-      , undefined, true
+      , undefined, false, true
+      fut.return @
 
   ###
   @locus Server
@@ -157,9 +144,8 @@ class Neo4jNode extends Neo4jData
           to: @_service.property.endpoint.replace '{key}', name
           body: value
 
-      @_db.batch tasks, =>
-        fut.return @
-      , false, true
+      @_db.batch tasks, plain: true
+      fut.return @
 
   ###
   @locus Server
@@ -179,11 +165,8 @@ class Neo4jNode extends Neo4jData
         @_db.__batch 
           method: 'DELETE'
           to: @_service.property.endpoint.replace '{key}', name
-        , 
-          => fut.return @
-        , undefined, true
-      else
-        fut.return @
+        , undefined, false, true
+      fut.return @
 
   ###
   @locus Server
@@ -207,20 +190,14 @@ class Neo4jNode extends Neo4jData
               method: 'DELETE'
               to: @_service.property.endpoint.replace '{key}', name
 
-        if tasks.length > 0
-          @_db.batch tasks, =>
-            fut.return @
-          , false, true
-        else
-          fut.return @
+        @_db.batch tasks, plain: true if tasks.length > 0
       else
         delete @_node[k] for k, v of _.omit @_node, ['_service', 'id', 'labels', 'metadata']
         @_db.__batch 
           method: 'DELETE'
           to: @_service.properties.endpoint
-        , 
-          => fut.return @
-        , undefined, true
+        , undefined, false, true
+      fut.return @
 
   ###
   @locus Server
@@ -243,9 +220,8 @@ class Neo4jNode extends Neo4jData
         method: 'PUT'
         to: @_service.properties.endpoint
         body: nameValue
-      , 
-        => fut.return @
-      , undefined, true
+      , undefined, false, true
+      fut.return @
 
   ###
   @locus Server
@@ -295,11 +271,8 @@ class Neo4jNode extends Neo4jData
           method: 'POST'
           to: @_service.labels.endpoint
           body: label
-        , 
-          => fut.return @
-        , undefined, true
-      else
-        fut.return @
+        , undefined, false, true
+      fut.return @
 
   ###
   @locus Server
@@ -322,11 +295,8 @@ class Neo4jNode extends Neo4jData
           method: 'POST'
           to: @_service.labels.endpoint
           body: labels
-        , 
-          => fut.return @
-        , undefined, true
-      else
-        fut.return @
+        , undefined, false, true
+      fut.return @
 
   ###
   @locus Server
@@ -350,11 +320,8 @@ class Neo4jNode extends Neo4jData
           method: 'PUT'
           to: @_service.labels.endpoint
           body: labels
-        , 
-          => fut.return @
-        , undefined, true
-      else
-        fut.return @
+        , undefined , false, true
+      fut.return @
 
   ###
   @locus Server
@@ -373,11 +340,8 @@ class Neo4jNode extends Neo4jData
         @_db.__batch 
           method: 'DELETE'
           to: @_service.labels.endpoint + '/' + label
-        , 
-          => fut.return @
-        , undefined, true
-      else
-        fut.return @
+        , undefined, false, true
+      fut.return @
 
   ###
   @locus Server
@@ -403,11 +367,8 @@ class Neo4jNode extends Neo4jData
             method: 'DELETE'
             to: @_service.labels.endpoint + '/' + label
 
-        @_db.batch tasks, =>
-          fut.return @
-        , false, true
-      else
-        fut.return @
+        @_db.batch tasks, plain: true
+      fut.return @
 
   ###
   @locus Server

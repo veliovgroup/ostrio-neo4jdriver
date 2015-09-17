@@ -15,20 +15,11 @@ class Neo4jRelationship extends Neo4jData
     events.EventEmitter.call @
 
     @_ready = false
-    @on 'ready', (relationship, fut) =>
+    @on 'ready', (relationship) =>
       if relationship and not _.isEmpty relationship
         @_id = relationship.id || relationship.metadata.id
         super @_db.__parseNode(relationship), @_isReactive
         @_ready = true
-        fut.return @ if fut
-      else
-        fut.return undefined if fut
-
-    @on 'apply', =>
-      _arguments = arguments
-      cb = arguments[arguments.length - 1]
-      if @_ready then cb.apply @, _arguments else @once 'ready', => cb.apply @, _arguments
-      return
 
     if _.isObject @_id
       if @_id?.startNode or @_id?.start
@@ -40,7 +31,7 @@ class Neo4jRelationship extends Neo4jData
         @emit 'ready', relationship
       , @_isReactive, true
 
-  __return: (cb) -> __wait (fut) => @emit 'apply', fut, (fut) -> cb.call @, fut
+  __return: (cb) -> __wait (fut) => if @_ready then cb.call @, fut else @once 'ready', => cb.call @, fut
 
   ###
   @locus Server
@@ -65,11 +56,9 @@ class Neo4jRelationship extends Neo4jData
       @_db.__batch 
         method: 'DELETE'
         to: @_service.self.endpoint
-      , 
-        =>
-          @node = undefined
-          fut.return undefined
-      , undefined, true
+      , undefined, false, true
+      @node = undefined
+      fut.return undefined
 
   ###
   @locus Server
@@ -108,9 +97,8 @@ class Neo4jRelationship extends Neo4jData
         method: 'PUT'
         to: @_service.property.endpoint.replace '{key}', name
         body: value
-      , 
-        => fut.return @
-      , undefined, true
+      , undefined, false, true
+      fut.return @
 
   ###
   @locus Server
@@ -132,9 +120,8 @@ class Neo4jRelationship extends Neo4jData
           to: @_service.property.endpoint.replace '{key}', name
           body: value
 
-      @_db.batch tasks, =>
-        fut.return @
-      , false, true
+      @_db.batch tasks, plain: true
+      fut.return @
 
   ###
   @locus Server
@@ -154,11 +141,8 @@ class Neo4jRelationship extends Neo4jData
         @_db.__batch 
           method: 'DELETE'
           to: @_service.property.endpoint.replace '{key}', name
-        , 
-          => fut.return @
-        , undefined, true
-      else
-        fut.return @
+        , undefined, false, true
+      fut.return @
 
   ###
   @locus Server
@@ -182,20 +166,15 @@ class Neo4jRelationship extends Neo4jData
               method: 'DELETE'
               to: @_service.property.endpoint.replace '{key}', name
 
-        if tasks.length > 0
-          @_db.batch tasks, =>
-            fut.return @
-          , false, true
-        else
-          fut.return @
+        @_db.batch tasks, plain: true if tasks.length > 0
       else
         delete @_node[k] for k, v of _.omit @_node, ['_service', 'id', 'type', 'metadata', 'start', 'end']
         @_db.__batch 
           method: 'DELETE'
           to: @_service.properties.endpoint
-        , 
-          => fut.return @
-        , undefined, true
+        , undefined, false, true
+
+      fut.return @
 
   ###
   @locus Server
@@ -218,9 +197,8 @@ class Neo4jRelationship extends Neo4jData
         method: 'PUT'
         to: @_service.properties.endpoint
         body: nameValue
-      , 
-        => fut.return @
-      , undefined, true
+      , undefined, false, true
+      fut.return @
 
   ###
   @locus Server
@@ -251,5 +229,3 @@ class Neo4jRelationship extends Neo4jData
   getProperty: (name) -> @__return (fut) => 
     @update()
     fut.return @node[name]
-
-

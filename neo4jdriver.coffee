@@ -181,7 +181,7 @@ class Neo4jDB
             fut.throw error if error
             fut.return response
       else
-        return request method, url, options.data, options, callback
+        Fiber(-> request method, url, options.data, options, callback).run()
     catch error
       __error "Error sending request to Neo4j (GrapheneDB) server:"
       __error new Error error
@@ -303,9 +303,9 @@ class Neo4jDB
           fut.return new Neo4jCursor data
         , reactive
     else
-      @__batch task, (error, data) ->
+      Fiber(=> @__batch task, (error, data) ->
         callback error, new Neo4jCursor data
-      , reactive
+      , reactive).run()
       return @
 
   __parseSettings: (settings, opts, callback) ->
@@ -462,7 +462,8 @@ class Neo4jDB
       opts = {}
     unless callback
       callback = -> return 
-    return @query cypher, opts, callback
+    Fiber(=> @query cypher, opts, callback).run()
+    return
 
   ###
   @locus Server
@@ -578,7 +579,7 @@ class Neo4jDB
     unless callback
       return __wait (fut) -> wait (error, results) -> fut.return results
     else
-      wait callback
+      Fiber(-> wait callback).run()
       return @
 
   ###
@@ -666,3 +667,10 @@ class Neo4jDB
     check id, Number
     check reactive, Match.Optional Boolean
     new Neo4jRelationship @, id, reactive
+
+  createConst: -> @createConstraint.apply @, arguments
+  createConstraint: (label, type = 'uniqueness') ->
+    @_db.__batch 
+      method: 'DELETE'
+      to: @_service.property.endpoint.replace '{key}', name
+    , undefined, undefined, true

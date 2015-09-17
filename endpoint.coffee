@@ -19,17 +19,8 @@ class Neo4jEndpoint
         body: options.body
       data = data.get() if _.isFunction data.get
 
-  __getAndProceed: (funcName, method = 'GET', body = {}, callback) ->
-    if callback
-      callback = (error, responce) => callback error, @_db[funcName] responce
-
-    res = @_db.__batch(
-      method: method
+  __getAndProceed: (funcName) ->
+    @_db[funcName] @_db.__batch
+      method: 'GET'
       to: @endpoint
-      body: body
-    , callback, false, true)
-
-    unless callback
-      res = @_db[funcName] res
-      return res
-    return
+    , undefined, false, true

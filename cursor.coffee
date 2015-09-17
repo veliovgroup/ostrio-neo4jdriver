@@ -35,11 +35,10 @@ class Neo4jCursor
   @returns {[Object]} - Array of nodes or undefined if cursor has no items
   ###
   first: -> 
-    __wait (fut) => 
-      @_current = 0
-      @hasNext = if @_cursor.length > 1 then true else false
-      @hasPrevious = false
-      fut.return @_cursor[0]
+    @_current = 0
+    @hasNext = if @_cursor.length > 1 then true else false
+    @hasPrevious = false
+    @_cursor[0]
 
   ###
   @locus Server
@@ -48,7 +47,7 @@ class Neo4jCursor
   @class Neo4jCursor
   @returns {[Object]} - Array of nodes
   ###
-  current: -> __wait (fut) => fut.return @_cursor[@_current]
+  current: -> @_cursor[@_current]
 
   ###
   @locus Server
@@ -59,12 +58,11 @@ class Neo4jCursor
   ###
   next: -> 
     if @hasNext
-      __wait (fut) => 
-        if @_current <= @length - 1
-          ++@_current
-          @hasNext = if @_current is @length - 1 then false else true
-          @hasPrevious = true
-          fut.return @_cursor[@_current]
+      if @_current <= @length - 1
+        ++@_current
+        @hasNext = if @_current is @length - 1 then false else true
+        @hasPrevious = true
+        @_cursor[@_current]
 
   ###
   @locus Server
@@ -75,12 +73,11 @@ class Neo4jCursor
   ###
   previous: -> 
     if @hasPrevious
-      __wait (fut) => 
-        if @_current >= 1
-          --@_current
-          @hasNext = true
-          @hasPrevious = if @_current is 0 then false else true
-          fut.return @_cursor[@_current]
+      if @_current >= 1
+        --@_current
+        @hasNext = true
+        @hasPrevious = if @_current is 0 then false else true
+        @_cursor[@_current]
 
   ###
   @locus Server
