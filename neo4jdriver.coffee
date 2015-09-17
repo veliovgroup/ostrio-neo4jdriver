@@ -649,7 +649,7 @@ class Neo4jDB
         to: @__service.node.endpoint + '/' + to
         type: type
         data: properties
-    , undefined, reactive, true
+    , undefined, false, true
 
     new Neo4jRelationship @, relationship, reactive
 
@@ -668,9 +668,80 @@ class Neo4jDB
     check reactive, Match.Optional Boolean
     new Neo4jRelationship @, id, reactive
 
+  ###
+  @locus Server
+  @summary Create constraint for label
+  @name createConstraint
+  @alias createConst
+  @class Neo4jDB
+  @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-create-uniqueness-constraint
+  @param {String} label - Label name
+  @param {[String]} keys - Keys
+  @param {String} type - Constraint type, default `uniqueness`
+  @returns {Object}
+  ###
   createConst: -> @createConstraint.apply @, arguments
-  createConstraint: (label, type = 'uniqueness') ->
-    @_db.__batch 
+  createConstraint: (label, keys, type = 'uniqueness') ->
+    check label, String
+    check keys, [String]
+    check type, String
+    @__batch 
+      method: 'POST'
+      to: @__service.constraints.endpoint + '/' + label + '/' + type
+      body: property_keys: keys
+    , undefined, false, true
+
+
+  ###
+  @locus Server
+  @summary Create constraint for label
+  @name dropConstraint
+  @alias dropConst
+  @class Neo4jDB
+  @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-drop-constraint
+  @param {String} label - Label name
+  @param {String} key - Keys
+  @param {String} type - Constraint type, default `uniqueness`
+  @returns {[]} - Empty array
+  ###
+  dropConst: -> @dropConstraint.apply @, arguments
+  dropConstraint: (label, key, type = 'uniqueness') ->
+    check label, String
+    check key, String
+    check type, String
+    @__batch 
       method: 'DELETE'
-      to: @_service.property.endpoint.replace '{key}', name
-    , undefined, undefined, true
+      to: @__service.constraints.endpoint + '/' + label + '/' + type + '/' + key
+    , undefined, false, true
+
+  ###
+  @locus Server
+  @summary Get constraint(s) for label, or get all DB's constraints
+  @name getConstraint
+  @alias getConst
+  @class Neo4jDB
+  @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-get-a-specific-uniqueness-constraint
+  @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-get-all-uniqueness-constraints-for-a-label
+  @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-get-all-constraints-for-a-label
+  @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-get-all-constraints
+  @param {String} label - Label name
+  @param {String} key - Keys
+  @param {String} type - Constraint type, default `uniqueness`
+  @returns {[Object]}
+  ###
+  getConst: -> @getConstraint.apply @, arguments
+  getConstraint: (label, key, type) ->
+    check label, Match.Optional String
+    check key, Match.Optional String
+    check type, Match.Optional String
+
+    type = 'uniqueness' if not type and key
+
+    params = []
+    params.push label if label
+    params.push type if type
+    params.push key if key
+    @__batch 
+      method: 'GET'
+      to: @__service.constraints.endpoint + '/' + params.join '/'
+    , undefined, false, true
