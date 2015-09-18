@@ -700,7 +700,7 @@ class Neo4jDB
   @class Neo4jDB
   @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-drop-constraint
   @param {String} label - Label name
-  @param {String} key - Keys
+  @param {String} key - Key
   @param {String} type - Constraint type, default `uniqueness`
   @returns {[]} - Empty array
   ###
@@ -725,7 +725,7 @@ class Neo4jDB
   @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-get-all-constraints-for-a-label
   @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-get-all-constraints
   @param {String} label - Label name
-  @param {String} key - Keys
+  @param {String} key - Key
   @param {String} type - Constraint type, default `uniqueness`
   @returns {[Object]}
   ###
@@ -744,4 +744,60 @@ class Neo4jDB
     @__batch 
       method: 'GET'
       to: @__service.constraints.endpoint + '/' + params.join '/'
+    , undefined, false, true
+
+  ###
+  @locus Server
+  @summary Create index for for label
+  @name createIndex
+  @class Neo4jDB
+  @url http://neo4j.com/docs/2.2.5/rest-api-schema-indexes.html#rest-api-create-index
+  @param {String} label - Label name
+  @param {[String]} keys - Keys
+  @returns {Object}
+  ###
+  createIndex: (label, keys) ->
+    check label, String
+    check keys, [String]
+
+    @__batch 
+      method: 'POST'
+      to: @__service.indexes.endpoint + '/' + label
+      body: property_keys: keys
+    , undefined, false, true
+
+  ###
+  @locus Server
+  @summary Get indexes for label
+  @name getIndexes
+  @class Neo4jDB
+  @url http://neo4j.com/docs/2.2.5/rest-api-schema-indexes.html#rest-api-list-indexes-for-a-label
+  @param {String} label - Label name
+  @returns {[Object]}
+  ###
+  getIndexes: (label) ->
+    check label, String
+
+    @__batch 
+      method: 'GET'
+      to: @__service.indexes.endpoint + '/' + label
+    , undefined, false, true
+
+  ###
+  @locus Server
+  @summary Drop (remove) index for for label
+  @name dropIndex
+  @class Neo4jDB
+  @url http://neo4j.com/docs/2.2.5/rest-api-schema-indexes.html#rest-api-drop-index
+  @param {String} label - Label name
+  @param {String} key - Key
+  @returns {[]} - Empty array
+  ###
+  dropIndex: (label, key) ->
+    check label, String
+    check key, String
+
+    @__batch 
+      method: 'DELETE'
+      to: @__service.indexes.endpoint + '/' + label + '/' + key
     , undefined, false, true
