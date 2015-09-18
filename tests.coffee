@@ -1572,7 +1572,6 @@ db.nodes().labels(['label', 'label2']).labels().delete()
 Tinytest.add 'Neo4jNode - labels - ([String]).labels() [SET / GET] [REACTIVE]', (test) ->
   node = db.nodes(null, true)
   test.equal node.labels(), []
-
   _node = db.queryOne "MATCH n WHERE id(n) = {id} SET n:MyLabel1 RETURN n", {id: node.get().id}
   test.equal node.labels(), ["MyLabel1"]
   __nodeCRC__ test, node.get(), ["MyLabel1"], {}
@@ -2242,7 +2241,6 @@ Tinytest.add 'Neo4jRelationship - getProperty - (name) [REACTIVE]', (test) ->
   test.equal n2.delete(), undefined
 
 
-
 ###
 @test 
 @description 
@@ -2268,11 +2266,11 @@ Tinytest.add 'Neo4jRelationship - deleteProperty - (name)', (test) ->
   test.equal n1.delete(), undefined
   test.equal n2.delete(), undefined
 
-# ###
-# @test 
-# @description
-# r..deleteProperty(name)
-# ###
+###
+@test 
+@description
+r..deleteProperty(name)
+###
 Tinytest.add 'Neo4jRelationship - deleteProperty - (name) [non-existent]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
@@ -2293,11 +2291,11 @@ Tinytest.add 'Neo4jRelationship - deleteProperty - (name) [non-existent]', (test
   test.equal n1.delete(), undefined
   test.equal n2.delete(), undefined
 
-# ###
-# @test 
-# @description
-# r.deleteProperties([name, name2])
-# ###
+###
+@test 
+@description
+r.deleteProperties([name, name2])
+###
 Tinytest.add 'Neo4jRelationship - deleteProperties - ([String])', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
@@ -2320,11 +2318,11 @@ Tinytest.add 'Neo4jRelationship - deleteProperties - ([String])', (test) ->
   test.equal n1.delete(), undefined
   test.equal n2.delete(), undefined
 
-# ###
-# @test 
-# @description
-# r.deleteProperties([name, name2])
-# ###
+###
+@test 
+@description
+r.deleteProperties([name, name2])
+###
 Tinytest.add 'Neo4jRelationship - deleteProperties - ([String]) [non-existent]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
@@ -2347,11 +2345,11 @@ Tinytest.add 'Neo4jRelationship - deleteProperties - ([String]) [non-existent]',
   test.equal n1.delete(), undefined
   test.equal n2.delete(), undefined
 
-# ###
-# @test 
-# @description
-# r.deleteProperties()
-# ###
+###
+@test 
+@description
+r.deleteProperties()
+###
 Tinytest.add 'Neo4jRelationship - deleteProperties - () [remove all]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
@@ -2373,3 +2371,66 @@ Tinytest.add 'Neo4jRelationship - deleteProperties - () [remove all]', (test) ->
   test.equal r.delete(), undefined
   test.equal n1.delete(), undefined
   test.equal n2.delete(), undefined
+
+###
+@test 
+@description
+db.createConstraint()
+db.getConstraint()
+db.dropConstraint()
+###
+Tinytest.add 'Neo4jDB - createConstraint / getConstraint / dropConstraint - ()', (test) ->
+  res = 
+    label: 'Special'
+    type: 'UNIQUENESS'
+    property_keys: [ 'uuid' ]
+
+  node = db.nodes({uuid: "#{Math.floor(Math.random()*(999999999-1+1)+1)}"}).setLabel('Special')
+  test.equal db.createConstraint('Special', ['uuid']), res
+  test.equal db.getConstraint(), [res]
+  test.equal db.getConstraint('Special'), [res]
+  test.equal db.getConstraint('Special'), [res]
+  test.equal db.getConstraint('Special', 'uuid'), [res]
+  test.equal db.getConstraint('Special', 'uuid', 'uniqueness'), [res]
+  test.equal db.dropConstraint('Special', 'uuid'), []
+  node.delete()
+
+###
+@test 
+@description
+db.createConst()
+db.getConst()
+db.dropConst()
+###
+Tinytest.add 'Neo4jDB - createConst / getConst / dropConst - ()', (test) ->
+  res = 
+    label: 'Special'
+    type: 'UNIQUENESS'
+    property_keys: [ 'uuid' ]
+
+  node = db.nodes({uuid: "#{Math.floor(Math.random()*(999999999-1+1)+1)}"}).setLabel('Special')
+  test.equal db.createConst('Special', ['uuid']), res
+  test.equal db.getConst(), [res]
+  test.equal db.getConst('Special'), [res]
+  test.equal db.getConst('Special', 'uuid'), [res]
+  test.equal db.getConst('Special', 'uuid', 'uniqueness'), [res]
+  test.equal db.dropConst('Special', 'uuid'), []
+  node.delete()
+
+###
+@test 
+@description
+db.createIndex()
+db.getIndexes()
+db.dropIndex()
+###
+Tinytest.add 'Neo4jDB - createIndex / getIndexes / dropIndex - ()', (test) ->
+  res = 
+    label: 'Special'
+    property_keys: [ 'uuid' ]
+
+  node = db.nodes({uuid: "#{Math.floor(Math.random()*(999999999-1+1)+1)}"}).setLabel('Special')
+  test.equal db.createIndex('Special', ['uuid']), res
+  test.equal db.getIndexes('Special'), [res]
+  test.equal db.dropIndex('Special', 'uuid'), []
+  node.delete()
