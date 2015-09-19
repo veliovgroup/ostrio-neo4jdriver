@@ -1582,11 +1582,11 @@ Tinytest.add 'Neo4jNode - labels - ([String]).labels() [SET / GET] [REACTIVE]', 
 ###
 @test 
 @description 
-db.getRelation(id).delete()
+db.relationship.get(id).delete()
 ###
-Tinytest.add 'Neo4jDB - getRelation - (id)', (test) ->
+Tinytest.add 'Neo4jDB - relationship - get(id)', (test) ->
   r = db.queryOne("CREATE (a)-[r:KNOWS {test: true}]->(b) RETURN r").r
-  _r = db.getRelation(r.id)
+  _r = db.relationship.get(r.id)
   __relationCRC__ test, _r, r.start, r.end, 'KNOWS', {test: true}
 
   test.equal _r.delete(), undefined
@@ -1596,11 +1596,11 @@ Tinytest.add 'Neo4jDB - getRelation - (id)', (test) ->
 ###
 @test 
 @description 
-db.getRelation(id, true).delete()
+db.relationship.get(id, true).delete()
 ###
-Tinytest.add 'Neo4jDB - getRelation - (id, true) [REACTIVE]', (test) ->
+Tinytest.add 'Neo4jDB - relationship - get(id, true) [REACTIVE]', (test) ->
   r = db.queryOne("CREATE (a)-[r:KNOWS {test: true}]->(b) RETURN r").r
-  _r = db.getRelation(r.id, true)
+  _r = db.relationship.get(r.id, true)
 
   db.querySync "MATCH ()-[r]-() WHERE id(r) = {id} SET r.newProp = 'rrrreactive!'", {id: _r.get().id}
 
@@ -1613,12 +1613,12 @@ Tinytest.add 'Neo4jDB - getRelation - (id, true) [REACTIVE]', (test) ->
 ###
 @test 
 @description 
-db.createRelation(db.nodes(), db.nodes()).delete()
+db.relationship.create(db.nodes(), db.nodes()).delete()
 ###
-Tinytest.add 'Neo4jDB - createRelation - (from, to, type, {})', (test) ->
+Tinytest.add 'Neo4jDB - relationship - create(from, to, type, {})', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
-  r = db.createRelation n1, n2, 'KNOWS', {test: true}
+  r = db.relationship.create n1, n2, 'KNOWS', {test: true}
 
   __relationCRC__ test, r, n1.get().id, n2.get().id, 'KNOWS', {test: true}
   test.equal r.delete(), undefined
@@ -1628,12 +1628,12 @@ Tinytest.add 'Neo4jDB - createRelation - (from, to, type, {})', (test) ->
 ###
 @test 
 @description 
-db.createRelation(db.nodes(), db.nodes()).delete()
+db.relationship.create(db.nodes(), db.nodes()).delete()
 ###
-Tinytest.add 'Neo4jDB - createRelation - (from, to, type) [NoProps]', (test) ->
+Tinytest.add 'Neo4jDB - relationship - create(from, to, type) [NoProps]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
-  r = db.createRelation n1, n2, 'KNOWS'
+  r = db.relationship.create n1, n2, 'KNOWS'
 
   __relationCRC__ test, r, n1.get().id, n2.get().id, 'KNOWS', {}
   test.equal r.delete(), undefined
@@ -1643,12 +1643,12 @@ Tinytest.add 'Neo4jDB - createRelation - (from, to, type) [NoProps]', (test) ->
 ###
 @test 
 @description 
-db.createRelation(db.nodes(), db.nodes(), {_reactive: true}).delete()
+db.relationship.create(db.nodes(), db.nodes(), {_reactive: true}).delete()
 ###
-Tinytest.add 'Neo4jDB - createRelation - (from, to, type, {_reactive: true}) [REACTIVE]', (test) ->
+Tinytest.add 'Neo4jDB - relationship - create(from, to, type, {_reactive: true}) [REACTIVE]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
-  r = db.createRelation n1, n2, 'KNOWS', _reactive: true
+  r = db.relationship.create n1, n2, 'KNOWS', _reactive: true
 
   test.equal n1.degree(), 1
   test.equal n2.degree(), 1
@@ -1666,7 +1666,7 @@ Tinytest.add 'Neo4jDB - createRelation - (from, to, type, {_reactive: true}) [RE
 @description 
 db.node().to(node2).delete()
 ###
-Tinytest.add 'Neo4jNode - node.to - (node2, type)', (test) ->
+Tinytest.add 'Neo4jNode - node - to(node2, type)', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.to n2, 'KNOWS', foo: 'bar'
@@ -1686,7 +1686,7 @@ Tinytest.add 'Neo4jNode - node.to - (node2, type)', (test) ->
 @description 
 db.node().from(node2).delete()
 ###
-Tinytest.add 'Neo4jNode - node.from - (node2, type)', (test) ->
+Tinytest.add 'Neo4jNode - node - from(node2, type)', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.from n2, 'KNOWS', foo: 'bar'
@@ -1706,7 +1706,7 @@ Tinytest.add 'Neo4jNode - node.from - (node2, type)', (test) ->
 @description 
 db.node().to(node2).delete()
 ###
-Tinytest.add 'Neo4jNode - node.to - (node2, type, {_reactive: true}) [REACTIVE]', (test) ->
+Tinytest.add 'Neo4jNode - node - to(node2, type, {_reactive: true}) [REACTIVE]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.to n2, 'KNOWS', {foo: 'bar', _reactive: true}
@@ -1728,7 +1728,7 @@ Tinytest.add 'Neo4jNode - node.to - (node2, type, {_reactive: true}) [REACTIVE]'
 @description 
 db.node().from(node2).delete()
 ###
-Tinytest.add 'Neo4jNode - node.from - (node2, type, {_reactive: true}) [REACTIVE]', (test) ->
+Tinytest.add 'Neo4jNode - node - from(node2, type, {_reactive: true}) [REACTIVE]', (test) ->
   n1 = db.nodes()
   n2 = db.nodes()
   r = n1.from n2, 'KNOWS', {foo: 'bar', _reactive: true}
@@ -2375,62 +2375,51 @@ Tinytest.add 'Neo4jRelationship - deleteProperties - () [remove all]', (test) ->
 ###
 @test 
 @description
-db.createConstraint()
-db.getConstraint()
-db.dropConstraint()
+db.constraint.create()
+db.constraint.get()
+db.constraint.drop()
 ###
-Tinytest.add 'Neo4jDB - createConstraint / getConstraint / dropConstraint - ()', (test) ->
+Tinytest.add 'Neo4jDB - constraint - create() / get() / drop()', (test) ->
   res = 
     label: 'Special'
     type: 'UNIQUENESS'
     property_keys: [ 'uuid' ]
 
   node = db.nodes({uuid: "#{Math.floor(Math.random()*(999999999-1+1)+1)}"}).setLabel('Special')
-  test.equal db.createConstraint('Special', ['uuid']), res
-  test.equal db.getConstraint(), [res]
-  test.equal db.getConstraint('Special'), [res]
-  test.equal db.getConstraint('Special'), [res]
-  test.equal db.getConstraint('Special', 'uuid'), [res]
-  test.equal db.getConstraint('Special', 'uuid', 'uniqueness'), [res]
-  test.equal db.dropConstraint('Special', 'uuid'), []
+  test.equal db.constraint.create('Special', ['uuid']), res
+  test.equal db.constraint.get(), [res]
+  test.equal db.constraint.get('Special'), [res]
+  test.equal db.constraint.get('Special'), [res]
+  test.equal db.constraint.get('Special', 'uuid'), [res]
+  test.equal db.constraint.get('Special', 'uuid', 'uniqueness'), [res]
+  test.equal db.constraint.drop('Special', 'uuid'), []
   node.delete()
 
 ###
 @test 
 @description
-db.createConst()
-db.getConst()
-db.dropConst()
+db.index.node.create()
+db.index.node.get()
+db.index.node.drop()
 ###
-Tinytest.add 'Neo4jDB - createConst / getConst / dropConst - ()', (test) ->
+Tinytest.add 'Neo4jDB - index.node - create() / get() / drop()', (test) ->
   res = 
     label: 'Special'
-    type: 'UNIQUENESS'
     property_keys: [ 'uuid' ]
 
   node = db.nodes({uuid: "#{Math.floor(Math.random()*(999999999-1+1)+1)}"}).setLabel('Special')
-  test.equal db.createConst('Special', ['uuid']), res
-  test.equal db.getConst(), [res]
-  test.equal db.getConst('Special'), [res]
-  test.equal db.getConst('Special', 'uuid'), [res]
-  test.equal db.getConst('Special', 'uuid', 'uniqueness'), [res]
-  test.equal db.dropConst('Special', 'uuid'), []
+  test.equal db.index.node.create('Special', ['uuid']), res
+  test.equal db.index.node.get('Special'), [res]
+  test.equal db.index.node.drop('Special', 'uuid'), []
   node.delete()
+
 
 ###
 @test 
 @description
-db.createIndex()
-db.getIndexes()
-db.dropIndex()
+n.path(node, {})
 ###
-Tinytest.add 'Neo4jDB - createIndex / getIndexes / dropIndex - ()', (test) ->
-  res = 
-    label: 'Special'
-    property_keys: [ 'uuid' ]
-
-  node = db.nodes({uuid: "#{Math.floor(Math.random()*(999999999-1+1)+1)}"}).setLabel('Special')
-  test.equal db.createIndex('Special', ['uuid']), res
-  test.equal db.getIndexes('Special'), [res]
-  test.equal db.dropIndex('Special', 'uuid'), []
-  node.delete()
+# Tinytest.add 'Neo4jNode - path - (node)', (test) ->
+#   n = db.nodes()
+#   console.log n.get(), n
+#   n.delete()

@@ -52,6 +52,10 @@ class Neo4jDB
         @once 'ready', => process.nextTick => _eb() if tasks.length > 0
     
     @__connect()
+    @relationship._db = @
+    @index.node._db = @
+    @constraint._db = @
+    # @index.relationship.db = @
 
   __request: (tasks) ->
     @__call @__service.batch.endpoint
@@ -613,191 +617,189 @@ class Neo4jDB
   ###
   nodes: (id, reactive) -> new Neo4jNode @, id, reactive
 
-  ###
-  @locus Server
-  @summary Create relationship between two nodes
-  @name createRelation
-  @class Neo4jDB
-  @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-create-a-relationship-with-properties
-  @param {Number | Object | Neo4jNode} from - id or instance of node
-  @param {Number | Object | Neo4jNode} to - id or instance of node
-  @param {String} type - Type (label) of relationship
-  @param {Object} properties - Relationship's properties
-  @param {Boolean} properties._reactive - Set Neo4jRelationship instance to reactive mode
-  @returns {Neo4jRelationship}
-  ###
-  createRelation: (from, to, type, properties = {}) ->
-    from = from?.id or from?.get?().id if _.isObject from
-    to = to?.id or to?.get?().id if _.isObject to
-    check from, Number
-    check to, Number
-    check type, String
-    check properties, Object
+  relationship:
+    ###
+    @locus Server
+    @summary Create relationship between two nodes
+    @name relationship.create
+    @class Neo4jDB
+    @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-create-a-relationship-with-properties
+    @param {Number | Object | Neo4jNode} from - id or instance of node
+    @param {Number | Object | Neo4jNode} to - id or instance of node
+    @param {String} type - Type (label) of relationship
+    @param {Object} properties - Relationship's properties
+    @param {Boolean} properties._reactive - Set Neo4jRelationship instance to reactive mode
+    @returns {Neo4jRelationship}
+    ###
+    create: (from, to, type, properties = {}) ->
+      from = from?.id or from?.get?().id if _.isObject from
+      to = to?.id or to?.get?().id if _.isObject to
+      check from, Number
+      check to, Number
+      check type, String
+      check properties, Object
 
-    if properties?._reactive
-      reactive = properties._reactive
-      delete properties._reactive
+      if properties?._reactive
+        reactive = properties._reactive
+        delete properties._reactive
 
-    reactive ?= false
+      reactive ?= false
 
-    check reactive, Boolean
+      check reactive, Boolean
 
-    relationship = @__batch 
-      method: 'POST'
-      to: @__service.node.endpoint + '/' + from + '/relationships'
-      body: 
-        to: @__service.node.endpoint + '/' + to
-        type: type
-        data: properties
-    , undefined, false, true
+      relationship = @_db.__batch 
+        method: 'POST'
+        to: @_db.__service.node.endpoint + '/' + from + '/relationships'
+        body: 
+          to: @_db.__service.node.endpoint + '/' + to
+          type: type
+          data: properties
+      , undefined, false, true
 
-    new Neo4jRelationship @, relationship, reactive
+      new Neo4jRelationship @_db, relationship, reactive
 
-  ###
-  @locus Server
-  @summary Get relationship object, by id
-  @name getRelation
-  @class Neo4jDB
-  @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-get-relationship-by-id
-  @param {Number} to - id or instance of node
-  @param {Boolean} reactive - Set Neo4jRelationship instance to reactive mode
-  @returns {Neo4jRelationship}
-  ###
-  getRelation: (id, reactive) -> 
-    check id, Number
-    check reactive, Match.Optional Boolean
-    new Neo4jRelationship @, id, reactive
+    ###
+    @locus Server
+    @summary Get relationship object, by id
+    @name relationship.get
+    @class Neo4jDB
+    @url http://neo4j.com/docs/2.2.5/rest-api-relationships.html#rest-api-get-relationship-by-id
+    @param {Number} to - id or instance of node
+    @param {Boolean} reactive - Set Neo4jRelationship instance to reactive mode
+    @returns {Neo4jRelationship}
+    ###
+    get: (id, reactive) -> 
+      check id, Number
+      check reactive, Match.Optional Boolean
+      new Neo4jRelationship @_db, id, reactive
 
-  ###
-  @locus Server
-  @summary Create constraint for label
-  @name createConstraint
-  @alias createConst
-  @class Neo4jDB
-  @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-create-uniqueness-constraint
-  @param {String} label - Label name
-  @param {[String]} keys - Keys
-  @param {String} type - Constraint type, default `uniqueness`
-  @returns {Object}
-  ###
-  createConst: -> @createConstraint.apply @, arguments
-  createConstraint: (label, keys, type = 'uniqueness') ->
-    check label, String
-    check keys, [String]
-    check type, String
-    @__batch 
-      method: 'POST'
-      to: @__service.constraints.endpoint + '/' + label + '/' + type
-      body: property_keys: keys
-    , undefined, false, true
+  constraint:
+    ###
+    @locus Server
+    @summary Create constraint for label
+    @name constraint.create
+    @class Neo4jDB
+    @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-create-uniqueness-constraint
+    @param {String} label - Label name
+    @param {[String]} keys - Keys
+    @param {String} type - Constraint type, default `uniqueness`
+    @returns {Object}
+    ###
+    create: (label, keys, type = 'uniqueness') ->
+      check label, String
+      check keys, [String]
+      check type, String
+      @_db.__batch 
+        method: 'POST'
+        to: @_db.__service.constraints.endpoint + '/' + label + '/' + type
+        body: property_keys: keys
+      , undefined, false, true
 
 
-  ###
-  @locus Server
-  @summary Create constraint for label
-  @name dropConstraint
-  @alias dropConst
-  @class Neo4jDB
-  @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-drop-constraint
-  @param {String} label - Label name
-  @param {String} key - Key
-  @param {String} type - Constraint type, default `uniqueness`
-  @returns {[]} - Empty array
-  ###
-  dropConst: -> @dropConstraint.apply @, arguments
-  dropConstraint: (label, key, type = 'uniqueness') ->
-    check label, String
-    check key, String
-    check type, String
-    @__batch 
-      method: 'DELETE'
-      to: @__service.constraints.endpoint + '/' + label + '/' + type + '/' + key
-    , undefined, false, true
+    ###
+    @locus Server
+    @summary Create constraint for label
+    @name constraint.drop
+    @class Neo4jDB
+    @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-drop-constraint
+    @param {String} label - Label name
+    @param {String} key - Key
+    @param {String} type - Constraint type, default `uniqueness`
+    @returns {[]} - Empty array
+    ###
+    drop: (label, key, type = 'uniqueness') ->
+      check label, String
+      check key, String
+      check type, String
+      @_db.__batch 
+        method: 'DELETE'
+        to: @_db.__service.constraints.endpoint + '/' + label + '/' + type + '/' + key
+      , undefined, false, true
 
-  ###
-  @locus Server
-  @summary Get constraint(s) for label, or get all DB's constraints
-  @name getConstraint
-  @alias getConst
-  @class Neo4jDB
-  @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-get-a-specific-uniqueness-constraint
-  @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-get-all-uniqueness-constraints-for-a-label
-  @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-get-all-constraints-for-a-label
-  @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-get-all-constraints
-  @param {String} label - Label name
-  @param {String} key - Key
-  @param {String} type - Constraint type, default `uniqueness`
-  @returns {[Object]}
-  ###
-  getConst: -> @getConstraint.apply @, arguments
-  getConstraint: (label, key, type) ->
-    check label, Match.Optional String
-    check key, Match.Optional String
-    check type, Match.Optional String
+    ###
+    @locus Server
+    @summary Get constraint(s) for label, or get all DB's constraints
+    @name constraint.get
+    @class Neo4jDB
+    @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-get-a-specific-uniqueness-constraint
+    @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-get-all-uniqueness-constraints-for-a-label
+    @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-get-all-constraints-for-a-label
+    @url http://neo4j.com/docs/2.2.5/rest-api-schema-constraints.html#rest-api-get-all-constraints
+    @param {String} label - Label name
+    @param {String} key - Key
+    @param {String} type - Constraint type, default `uniqueness`
+    @returns {[Object]}
+    ###
+    get: (label, key, type) ->
+      check label, Match.Optional String
+      check key, Match.Optional String
+      check type, Match.Optional String
 
-    type = 'uniqueness' if not type and key
+      type = 'uniqueness' if not type and key
 
-    params = []
-    params.push label if label
-    params.push type if type
-    params.push key if key
-    @__batch 
-      method: 'GET'
-      to: @__service.constraints.endpoint + '/' + params.join '/'
-    , undefined, false, true
+      params = []
+      params.push label if label
+      params.push type if type
+      params.push key if key
+      @_db.__batch 
+        method: 'GET'
+        to: @_db.__service.constraints.endpoint + '/' + params.join '/'
+      , undefined, false, true
 
-  ###
-  @locus Server
-  @summary Create index for for label
-  @name createIndex
-  @class Neo4jDB
-  @url http://neo4j.com/docs/2.2.5/rest-api-schema-indexes.html#rest-api-create-index
-  @param {String} label - Label name
-  @param {[String]} keys - Keys
-  @returns {Object}
-  ###
-  createIndex: (label, keys) ->
-    check label, String
-    check keys, [String]
+  index:
+    node:
+      ###
+      @locus Server
+      @summary Create index for for label
+      @name index.node.create
+      @class Neo4jDB
+      @url http://neo4j.com/docs/2.2.5/rest-api-schema-indexes.html#rest-api-create-index
+      @param {String} label - Label name
+      @param {[String]} keys - Keys
+      @returns {Object}
+      ###
+      create: (label, keys) ->
+        check label, String
+        check keys, [String]
 
-    @__batch 
-      method: 'POST'
-      to: @__service.indexes.endpoint + '/' + label
-      body: property_keys: keys
-    , undefined, false, true
+        @_db.__batch 
+          method: 'POST'
+          to: @_db.__service.indexes.endpoint + '/' + label
+          body: property_keys: keys
+        , undefined, false, true
 
-  ###
-  @locus Server
-  @summary Get indexes for label
-  @name getIndexes
-  @class Neo4jDB
-  @url http://neo4j.com/docs/2.2.5/rest-api-schema-indexes.html#rest-api-list-indexes-for-a-label
-  @param {String} label - Label name
-  @returns {[Object]}
-  ###
-  getIndexes: (label) ->
-    check label, String
+      ###
+      @locus Server
+      @summary Get indexes for label
+      @name index.node.get
+      @class Neo4jDB
+      @url http://neo4j.com/docs/2.2.5/rest-api-schema-indexes.html#rest-api-list-indexes-for-a-label
+      @param {String} label - Label name
+      @returns {[Object]}
+      ###
+      get: (label) ->
+        check label, String
 
-    @__batch 
-      method: 'GET'
-      to: @__service.indexes.endpoint + '/' + label
-    , undefined, false, true
+        @_db.__batch 
+          method: 'GET'
+          to: @_db.__service.indexes.endpoint + '/' + label
+        , undefined, false, true
 
-  ###
-  @locus Server
-  @summary Drop (remove) index for for label
-  @name dropIndex
-  @class Neo4jDB
-  @url http://neo4j.com/docs/2.2.5/rest-api-schema-indexes.html#rest-api-drop-index
-  @param {String} label - Label name
-  @param {String} key - Key
-  @returns {[]} - Empty array
-  ###
-  dropIndex: (label, key) ->
-    check label, String
-    check key, String
+      ###
+      @locus Server
+      @summary Drop (remove) index for for label
+      @name index.node.drop
+      @class Neo4jDB
+      @url http://neo4j.com/docs/2.2.5/rest-api-schema-indexes.html#rest-api-drop-index
+      @param {String} label - Label name
+      @param {String} key - Key
+      @returns {[]} - Empty array
+      ###
+      drop: (label, key) ->
+        check label, String
+        check key, String
 
-    @__batch 
-      method: 'DELETE'
-      to: @__service.indexes.endpoint + '/' + label + '/' + key
-    , undefined, false, true
+        @_db.__batch 
+          method: 'DELETE'
+          to: @_db.__service.indexes.endpoint + '/' + label + '/' + key
+        , undefined, false, true

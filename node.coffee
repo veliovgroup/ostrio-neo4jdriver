@@ -426,7 +426,7 @@ class Neo4jNode extends Neo4jData
     check type, String
     check properties, Object
 
-    @_db.createRelation @_id, to, type, properties
+    @_db.relationship.create @_id, to, type, properties
 
   ###
   @locus Server
@@ -446,7 +446,7 @@ class Neo4jNode extends Neo4jData
     check type, String
     check properties, Object
 
-    @_db.createRelation from, @_id, type, properties
+    @_db.relationship.create from, @_id, type, properties
 
   ###
   @locus Server
@@ -470,3 +470,25 @@ class Neo4jNode extends Neo4jData
       , 
         (error, result) => fut.return new Neo4jCursor result
       , reactive
+
+
+  # path: (to, settings = {max_depth: 3, relationships: {type: 'to', direction: 'out'}, algorithm: 'shortestPath'}) ->
+  #   to = to?.id or to?.get?().id if _.isObject to
+  #   check to, Number
+  #   check settings, {
+  #     max_depth: Number
+  #     cost_property: Match.Optional String
+  #     relationships: {
+  #       type: Match.OneOf 'to', 'from'
+  #       direction: Match.OneOf 'in', 'out'
+  #     }
+  #     algorithm: Match.OneOf 'shortestPath', 'allSimplePaths', 'allPaths', 'dijkstra'
+  #   }
+
+  #   @__return (fut) ->
+  #     @_db.__batch 
+  #       method: 'POST'
+  #       to: @_service..endpoint + '/' + direction + '/' + types.join('&')
+  #     , 
+  #       (error, result) => fut.return new Neo4jCursor result
+  #     , reactive
