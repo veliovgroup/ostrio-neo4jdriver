@@ -51,7 +51,7 @@ Meteor.startup ->
     createNode: (form) ->
       check form, Object
       updatedAt = +new Date
-      n = db.nodes({description: form.description, name: form.name, updatedAt}).replaceLabels([form.label]).get()
+      n = db.nodes({description: form.description, name: form.name, updatedAt}).labels.replace([form.label]).get()
       n.label = n.name
       n.group = n.labels[0]
       n
@@ -60,7 +60,7 @@ Meteor.startup ->
       check form, Object
       form.id = parseInt form.id
       updatedAt = +new Date
-      n = db.nodes(form.id).setProperties({description: form.description, name: form.name, updatedAt}).replaceLabels([form.label]).get()
+      n = db.nodes(form.id).properties.set({description: form.description, name: form.name, updatedAt}).labels.replace([form.label]).get()
       n.label = n.name
       n.group = n.labels[0]
       n
@@ -76,7 +76,7 @@ Meteor.startup ->
       updatedAt = +new Date
       n = db.nodes id
       unless n.property 'removed'
-        n.setProperties 
+        n.properties.set 
           removed: true
           updatedAt: updatedAt
 
@@ -110,7 +110,7 @@ Meteor.startup ->
       form.from = parseInt form.from
       form.id = parseInt form.id
       
-      oldRel = db.getRelation form.id
+      oldRel = db.relationship.get form.id
       ###
       If this relationship already marked as removed, then it changed by someone else
       We will just wait for long-polling updates on client
@@ -121,18 +121,18 @@ Meteor.startup ->
           n1 = db.nodes form.from
           n2 = db.nodes form.to
           if form.type isnt oldRel.get().type
-            oldRel.setProperties
+            oldRel.properties.set
               removed: true
               updatedAt: updatedAt
 
             Meteor.setTimeout ->
-              r = db.getRelation form.id
+              r = db.relationship.get form.id
               r.delete() if r?.get?()
             , 15000
 
             r = n1.to(n2, form.type, {description: form.description, updatedAt}).get()
           else
-            r = oldRel.setProperties({description: form.description, updatedAt}).get()
+            r = oldRel.properties.set({description: form.description, updatedAt}).get()
 
           r.from    = r.start
           r.to      = r.end
@@ -152,15 +152,15 @@ Meteor.startup ->
       After 15 seconds we will get rid of the relationship from Neo4j, if it still exists
       ###
       updatedAt = +new Date
-      r = db.getRelation id
+      r = db.relationship.get id
       
       if r.get() and not r.property 'removed'
-        r.setProperties
+        r.properties.set
           removed: true
           updatedAt: updatedAt
 
         Meteor.setTimeout ->
-          r = db.getRelation id
+          r = db.relationship.get id
           r.delete() if r?.get?()
         , 15000
       true
