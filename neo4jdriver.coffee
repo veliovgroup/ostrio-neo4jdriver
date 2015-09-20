@@ -53,9 +53,8 @@ class Neo4jDB
     
     @__connect()
     @relationship._db = @
-    @index.node._db = @
+    @index._db = @
     @constraint._db = @
-    # @index.relationship.db = @
 
   __request: (tasks) ->
     @__call @__service.batch.endpoint
@@ -117,8 +116,10 @@ class Neo4jDB
       return __wait (fut) =>
         @once task.id, (error, response) =>
           bound => 
-            fut.throw error if error
-            fut.return if noTransform then response else @__transformData _.clone(response), reactive
+            if error
+              fut.throw error
+            else
+              fut.return if noTransform then response else @__transformData _.clone(response), reactive
     else
       @once task.id, (error, response) =>
         bound => 
@@ -182,8 +183,10 @@ class Neo4jDB
       unless callback
         return __wait (fut) ->
           request method, url, options.data, options, (error, response) ->
-            fut.throw error if error
-            fut.return response
+            if error
+              fut.throw error
+            else
+              fut.return response
       else
         Fiber(-> request method, url, options.data, options, callback).run()
     catch error
@@ -747,59 +750,58 @@ class Neo4jDB
       , undefined, false, true
 
   index:
-    node:
-      ###
-      @locus Server
-      @summary Create index for for label
-      @name index.node.create
-      @class Neo4jDB
-      @url http://neo4j.com/docs/2.2.5/rest-api-schema-indexes.html#rest-api-create-index
-      @param {String} label - Label name
-      @param {[String]} keys - Keys
-      @returns {Object}
-      ###
-      create: (label, keys) ->
-        check label, String
-        check keys, [String]
+    ###
+    @locus Server
+    @summary Create index for label
+    @name index.create
+    @class Neo4jDB
+    @url http://neo4j.com/docs/2.2.5/rest-api-schema-indexes.html#rest-api-create-index
+    @param {String} label - Label name
+    @param {[String]} keys - Index keys
+    @returns {Object}
+    ###
+    create: (label, keys) ->
+      check label, String
+      check keys, [String]
 
-        @_db.__batch 
-          method: 'POST'
-          to: @_db.__service.indexes.endpoint + '/' + label
-          body: property_keys: keys
-        , undefined, false, true
+      @_db.__batch 
+        method: 'POST'
+        to: @_db.__service.indexes.endpoint + '/' + label
+        body: property_keys: keys
+      , undefined, false, true
 
-      ###
-      @locus Server
-      @summary Get indexes for label
-      @name index.node.get
-      @class Neo4jDB
-      @url http://neo4j.com/docs/2.2.5/rest-api-schema-indexes.html#rest-api-list-indexes-for-a-label
-      @param {String} label - Label name
-      @returns {[Object]}
-      ###
-      get: (label) ->
-        check label, String
+    ###
+    @locus Server
+    @summary Get indexes for label
+    @name index.get
+    @class Neo4jDB
+    @url http://neo4j.com/docs/2.2.5/rest-api-schema-indexes.html#rest-api-list-indexes-for-a-label
+    @param {String} label - Label name
+    @returns {[Object]}
+    ###
+    get: (label) ->
+      check label, Match.Optional String
 
-        @_db.__batch 
-          method: 'GET'
-          to: @_db.__service.indexes.endpoint + '/' + label
-        , undefined, false, true
+      @_db.__batch 
+        method: 'GET'
+        to: @_db.__service.indexes.endpoint + '/' + label
+      , undefined, false, true
 
-      ###
-      @locus Server
-      @summary Drop (remove) index for for label
-      @name index.node.drop
-      @class Neo4jDB
-      @url http://neo4j.com/docs/2.2.5/rest-api-schema-indexes.html#rest-api-drop-index
-      @param {String} label - Label name
-      @param {String} key - Key
-      @returns {[]} - Empty array
-      ###
-      drop: (label, key) ->
-        check label, String
-        check key, String
+    ###
+    @locus Server
+    @summary Drop (remove) index for label
+    @name index.drop
+    @class Neo4jDB
+    @url http://neo4j.com/docs/2.2.5/rest-api-schema-indexes.html#rest-api-drop-index
+    @param {String} label - Label name
+    @param {String} key - Index key
+    @returns {[]} - Empty array
+    ###
+    drop: (label, key) ->
+      check label, String
+      check key, String
 
-        @_db.__batch 
-          method: 'DELETE'
-          to: @_db.__service.indexes.endpoint + '/' + label + '/' + key
-        , undefined, false, true
+      @_db.__batch 
+        method: 'DELETE'
+        to: @_db.__service.indexes.endpoint + '/' + label + '/' + key
+      , undefined, false, true
