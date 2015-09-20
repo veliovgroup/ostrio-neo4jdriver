@@ -42,10 +42,11 @@ class Neo4jData
   @name update
   @class Neo4jData
   @url http://neo4j.com/docs/2.2.5/rest-api-nodes.html#rest-api-get-node
+  @param {Boolean} force - Force node's data update
   @returns {Object | [Object] | [String]} - Depends from cypher query
   ###
-  update: ->
-    if @_node and @_service and @_isReactive
+  update: (force = false) ->
+    if @_node and @_service and @_isReactive or force
       @__refresh()
       @node = @_service.self.__getAndProceed '__parseNode' 
     return @
