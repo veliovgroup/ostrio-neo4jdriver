@@ -2456,7 +2456,72 @@ Tinytest.add 'Neo4jRelationship - r.index - create() / get() / drop()', (test) -
 @description
 n.path(node, {})
 ###
-# Tinytest.add 'Neo4jNode - path - (node)', (test) ->
-#   n = db.nodes()
-#   console.log n.get(), n
-#   n.delete()
+Tinytest.add 'Neo4jNode - path - (node)', (test) ->
+  n1 = db.nodes({name: 'First Station'}).labels.set('Station')
+  n2 = db.nodes({name: 'Second Station'}).labels.set('Station')
+  n3 = db.nodes({name: 'Third Station'}).labels.set('Station')
+  n4 = db.nodes({name: 'Fourth Station'}).labels.set('Station')
+  r1 = n1.to n3, "ROUTE", {time: 7}
+  r2 = n1.to n2, "ROUTE", {time: 5}
+  r3 = n2.to n3, "ROUTE", {time: 6}
+  r4 = n3.to n4, "ROUTE", {time: 7}
+  dijkstra = n1.path n4, "ROUTE", {cost_property: 'time', algorithm: 'dijkstra'}
+  allSimplePaths = n4.path n1, "ROUTE", {relationships: {direction: 'in'}, algorithm: 'allSimplePaths'}
+  allPaths = n1.path n4, "ROUTE", {cost_property: 'time', algorithm: 'allPaths'}
+  shortestPath = n1.path n4, "ROUTE"
+
+  test.equal dijkstra.length, 1
+  test.equal dijkstra[0].directions, [ '->', '->' ]
+  test.equal dijkstra[0].weight, 14
+  test.equal dijkstra[0].start, n1.get().id
+  test.equal dijkstra[0].nodes, [n1.get().id, n3.get().id, n4.get().id]
+  test.equal dijkstra[0].length, 2
+  test.equal dijkstra[0].relationships, [r1.get().id, r4.get().id]
+  test.equal dijkstra[0].end, n4.get().id
+
+  test.equal allSimplePaths.length, 2
+  test.equal allSimplePaths[0].directions, [ '<-', '<-' ]
+  test.equal allSimplePaths[0].start, n4.get().id
+  test.equal allSimplePaths[0].nodes, [n4.get().id, n3.get().id, n1.get().id]
+  test.equal allSimplePaths[0].length, 2
+  test.equal allSimplePaths[0].relationships, [r4.get().id, r1.get().id]
+  test.equal allSimplePaths[0].end, n1.get().id
+
+  test.equal allSimplePaths[1].directions, [ '<-', '<-', '<-' ]
+  test.equal allSimplePaths[1].start, n4.get().id
+  test.equal allSimplePaths[1].nodes, [n4.get().id, n3.get().id, n2.get().id, n1.get().id]
+  test.equal allSimplePaths[1].length, 3
+  test.equal allSimplePaths[1].relationships, [r4.get().id, r3.get().id, r2.get().id]
+  test.equal allSimplePaths[1].end, n1.get().id
+
+  test.equal allPaths.length, 2
+  test.equal allPaths[0].directions, [ '->', '->' ]
+  test.equal allPaths[0].start, n1.get().id
+  test.equal allPaths[0].nodes, [n1.get().id, n3.get().id, n4.get().id]
+  test.equal allPaths[0].length, 2
+  test.equal allPaths[0].relationships, [r1.get().id, r4.get().id]
+  test.equal allPaths[0].end, n4.get().id
+
+  test.equal allPaths[1].directions, [ '->', '->', '->' ]
+  test.equal allPaths[1].start, n1.get().id
+  test.equal allPaths[1].nodes, [n1.get().id, n2.get().id, n3.get().id, n4.get().id]
+  test.equal allPaths[1].length, 3
+  test.equal allPaths[1].relationships, [r2.get().id, r3.get().id, r4.get().id]
+  test.equal allPaths[1].end, n4.get().id
+
+  test.equal shortestPath.length, 1
+  test.equal shortestPath[0].directions, [ '->', '->' ]
+  test.equal shortestPath[0].start, n1.get().id
+  test.equal shortestPath[0].nodes, [n1.get().id, n3.get().id, n4.get().id]
+  test.equal shortestPath[0].length, 2
+  test.equal shortestPath[0].relationships, [r1.get().id, r4.get().id]
+  test.equal shortestPath[0].end, n4.get().id
+
+  r1.delete()
+  r2.delete()
+  r3.delete()
+  r4.delete()
+  n1.delete()
+  n2.delete()
+  n3.delete()
+  n4.delete()

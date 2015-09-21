@@ -507,22 +507,79 @@ class Neo4jNode extends Neo4jData
       , undefined, false, true
 
 
+  ###
+  @locus Server
+  @summary Graph Algorithms
+  @name path
+  @class Neo4jNode
+  @url http://neo4j.com/docs/2.2.5/rest-api-graph-algos.html
+  @param {Number | Neo4jNode} to - Neo4jNode Object or node id as Number
+  @param {String} type - Relationship type
+  @param {Object} settings - [OPTIONAL] Object of Graph Algorithm settings
+  @param {Number} settings.max_depth - The maximum depth as an integer for the algorithms, default is `3`
+  @param {String} settings.algorithm - One of the algorithms: `shortestPath`, `allSimplePaths`, 
+                                       `allPaths` or `dijkstra`, default is `shortestPath`
+  @param {String} settings.cost_property - [for `dijkstra` algorithm only] name of relationship property
+  @param {Number} settings.default_cost - [REQUIRED for `dijkstra` algorithm if `cost_property` is not defined]
+  @param {Object} settings.relationships
+  @param {String} settings.relationships.direction - One of `out` or `in`, default is `out`
+  @returns {[Object]} - Array of results, like:
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r1 = n1.to(n2, "KNOWS")
+  console.log(n1.path(n2, "KNOWS"))
+  # Output:
+  # directions: [ '->' ]
+  # start: 20982
+  # nodes: [ 20982, 20983 ]
+  # length: 1
+  # relationships: [ 5375 ]
+  # end: 20983
+  ###
   path: (to, type, settings = {max_depth: 3, relationships: {direction: 'out'}, algorithm: 'shortestPath'}) ->
     to = to?.id or to?.get?().id if _.isObject to
     check to, Number
     check type, String
-    settings.to = @_db.__service.node.endpoint + '/' + to
-    settings.relationships ?= {}
-    settings.relationships.type = type
+
+    settings.to                       = @_db.__service.node.endpoint + '/' + to
+    settings.algorithm               ?= 'shortestPath'
+    settings.max_depth               ?= if settings.algorithm in ['allSimplePaths', 'allPaths'] then 3 else undefined
+    settings.relationships           ?= {}
+    settings.relationships.type       = type
+    settings.relationships.direction ?= 'out'
+    
+    delete settings.max_depth unless settings.max_depth
 
     check settings,
       to: String
-      max_depth: Number
+      max_depth: Match.Optional Number
       cost_property: Match.Optional String
       relationships:
         type: String
         direction: Match.OneOf 'in', 'out'
       algorithm: Match.OneOf 'shortestPath', 'allSimplePaths', 'allPaths', 'dijkstra'
+
+    format = (path) ->
+      props = ['start', 'nodes', 'relationships', 'end']
+
+      getId = (url) ->
+        p = url.split '/'
+        parseInt p[p.length - 1]
+
+      path._service = 
+        start: path.start
+        nodes: path.nodes
+        relationships: path.relationships
+        end: path.end
+
+      for prop in props
+        if _.isArray path[prop]
+          v = []
+          v.push getId val for val in path[prop]
+        else
+          v = getId path[prop]
+        path[prop] = v
+      return path
 
     @__return (fut) ->
       @_db.__batch 
@@ -530,5 +587,5 @@ class Neo4jNode extends Neo4jData
         to: @_service.self.endpoint + '/paths'
         body: settings
       , 
-        (error, result) => fut.return result
+        (error, results) => fut.return (format result for result in results)
       , false, true
