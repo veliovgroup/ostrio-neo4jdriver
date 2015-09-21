@@ -59,7 +59,9 @@ class Neo4jRelationship extends Neo4jData
       @_db.__batch 
         method: 'DELETE'
         to: @_service.self.endpoint
-      , undefined, false, true
+      , () ->
+        return
+      , false, true
       @node = undefined
       fut.return undefined
 
@@ -108,7 +110,7 @@ class Neo4jRelationship extends Neo4jData
               to: @_service.property.endpoint.replace '{key}', name
               body: value
 
-          @_db.batch tasks, plain: true
+          @_db.batch tasks, plain: true, () -> return
         else
           check n, String
           check v, Match.OneOf String, Number, Boolean, [String], [Number], [Boolean]
@@ -118,7 +120,9 @@ class Neo4jRelationship extends Neo4jData
             method: 'PUT'
             to: @_service.property.endpoint.replace '{key}', n
             body: v
-          , undefined, false, true
+          , () ->
+            return
+          , false, true
         fut.return @
 
     ###
@@ -142,7 +146,9 @@ class Neo4jRelationship extends Neo4jData
             @_db.__batch 
               method: 'DELETE'
               to: @_service.property.endpoint.replace '{key}', names
-            , undefined, false, true
+            , () -> 
+              return
+            , false, true
 
         else if _.isArray(names) and names.length > 0
           tasks = []
@@ -160,7 +166,9 @@ class Neo4jRelationship extends Neo4jData
           @_db.__batch 
             method: 'DELETE'
             to: @_service.properties.endpoint
-          , undefined, false, true
+          , () ->
+            return
+          , false, true
         fut.return @
 
     ###
@@ -184,7 +192,9 @@ class Neo4jRelationship extends Neo4jData
           method: 'PUT'
           to: @_service.properties.endpoint
           body: nameValue
-        , undefined, false, true
+        , () ->
+          return
+        , false, true
         fut.return @
 
   ###

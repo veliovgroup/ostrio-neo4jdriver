@@ -140,7 +140,9 @@ class Neo4jNode extends Neo4jData
             @_db.__batch 
               method: 'DELETE'
               to: @_service.property.endpoint.replace '{key}', names
-            , undefined, false, true
+            , () -> 
+              return
+            , false, true
 
         else if _.isArray(names) and names.length > 0
           tasks = []
@@ -157,7 +159,9 @@ class Neo4jNode extends Neo4jData
           @_db.__batch 
             method: 'DELETE'
             to: @_service.properties.endpoint
-          , undefined, false, true
+          , () -> 
+            return
+          , false, true
         fut.return @
 
     ###
@@ -207,7 +211,9 @@ class Neo4jNode extends Neo4jData
     @_db.__batch 
       method: 'DELETE'
       to: @_service.self.endpoint
-    , undefined, false, true
+    , () -> 
+      return
+    , false, true
     @node = undefined
     fut.return undefined
 
@@ -262,7 +268,9 @@ class Neo4jNode extends Neo4jData
               method: 'POST'
               to: @_service.labels.endpoint
               body: labels
-            , undefined, false, true
+            , () -> 
+              return
+            , false, true
         fut.return @
 
     ###
@@ -287,7 +295,9 @@ class Neo4jNode extends Neo4jData
             method: 'PUT'
             to: @_service.labels.endpoint
             body: labels
-          , undefined , false, true
+          , () -> 
+            return
+          , false, true
         fut.return @
 
     ###
@@ -308,7 +318,9 @@ class Neo4jNode extends Neo4jData
             @_db.__batch 
               method: 'DELETE'
               to: @_service.labels.endpoint + '/' + labels
-            , undefined, false, true
+            , () -> 
+              return
+            , false, true
 
         else
           labels = _.uniq labels
@@ -322,7 +334,7 @@ class Neo4jNode extends Neo4jData
                 method: 'DELETE'
                 to: @_service.labels.endpoint + '/' + label
 
-            @_db.batch tasks, plain: true
+            @_db.batch tasks, plain: true, () -> return
         fut.return @
 
   ###
@@ -495,23 +507,28 @@ class Neo4jNode extends Neo4jData
       , undefined, false, true
 
 
-  # path: (to, settings = {max_depth: 3, relationships: {type: 'to', direction: 'out'}, algorithm: 'shortestPath'}) ->
-  #   to = to?.id or to?.get?().id if _.isObject to
-  #   check to, Number
-  #   check settings, {
-  #     max_depth: Number
-  #     cost_property: Match.Optional String
-  #     relationships: {
-  #       type: Match.OneOf 'to', 'from'
-  #       direction: Match.OneOf 'in', 'out'
-  #     }
-  #     algorithm: Match.OneOf 'shortestPath', 'allSimplePaths', 'allPaths', 'dijkstra'
-  #   }
+  path: (to, type, settings = {max_depth: 3, relationships: {direction: 'out'}, algorithm: 'shortestPath'}) ->
+    to = to?.id or to?.get?().id if _.isObject to
+    check to, Number
+    check type, String
+    settings.to = @_db.__service.node.endpoint + '/' + to
+    settings.relationships ?= {}
+    settings.relationships.type = type
 
-  #   @__return (fut) ->
-  #     @_db.__batch 
-  #       method: 'POST'
-  #       to: @_service..endpoint + '/' + direction + '/' + types.join('&')
-  #     , 
-  #       (error, result) => fut.return new Neo4jCursor result
-  #     , reactive
+    check settings,
+      to: String
+      max_depth: Number
+      cost_property: Match.Optional String
+      relationships:
+        type: String
+        direction: Match.OneOf 'in', 'out'
+      algorithm: Match.OneOf 'shortestPath', 'allSimplePaths', 'allPaths', 'dijkstra'
+
+    @__return (fut) ->
+      @_db.__batch 
+        method: 'POST'
+        to: @_service.self.endpoint + '/paths'
+        body: settings
+      , 
+        (error, result) => fut.return result
+      , false, true
