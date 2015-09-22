@@ -99,7 +99,7 @@ class Neo4jDB
       else
         for error in result.body.errors
           __error error.message
-          __error {code: error.code}
+          __error "code: ", error.code
         @emit result.id, error?.message, [], result.id
     else
       @emit result.id, null, [], result.id
@@ -143,9 +143,10 @@ class Neo4jDB
             @emit 'ready'
             __success "Successfully connected to Neo4j on #{@url}"
         else
-          throw new Error JSON.stringify response
+          throw new Error JSON.stringify response, null, 2
     else
-      throw new Error "Error with connection to Neo4j"
+      __error "Error with connection to Neo4j. Please make sure your local Neo4j DB is started, if you use remote Neo4j DB make sure it is available. Ensure credentials for Neo4j DB is right."
+      __error "Received response from #{@url}: ", response
 
   __call: (url, options = {}, method = 'GET', callback) ->
     check url, String
@@ -190,8 +191,7 @@ class Neo4jDB
       else
         Fiber(-> request method, url, options.data, options, callback).run()
     catch error
-      __error "Error sending request to Neo4j (GrapheneDB) server:"
-      __error new Error error
+      __error "Error sending request to Neo4j (GrapheneDB) server: ", error
 
   __parseNode: (currentNode) ->
     if currentNode?.metadata or currentNode?.data
@@ -306,8 +306,10 @@ class Neo4jDB
     unless callback
       return __wait (fut) =>
         @__batch task, (error, data) ->
-          __error error if error
-          fut.return new Neo4jCursor data
+          if error
+            fut.throw error
+          else
+            fut.return new Neo4jCursor data
         , reactive
     else
       Fiber(=> @__batch task, (error, data) ->
@@ -541,7 +543,7 @@ class Neo4jDB
   @param {String}   tasks.$.method  - HTTP(S) method used sending this task, one of: 'POST', 'GET', 'PUT', 'DELETE', 'HEAD'
   @param {String}   tasks.$.to - Endpoint (URL) for task
   @param {Number}   tasks.$.id - [Optional] Unique id to identify task. Should be always unique!
-  @param {Object}   tasks.$.body - [Optional] JSONable object which will be sent as data to task
+  @param {mix}      tasks.$.body - [Optional] JSONable object which will be sent as data to task
   @param {Object}   settings
   @param {Boolean}  settings.reactive - if `true` and if `plain` is true data of node(s) will be updated before returning
   @param {Boolean}  settings.plain - if `true`, results will be returned as simple objects instead of Neo4jCursor

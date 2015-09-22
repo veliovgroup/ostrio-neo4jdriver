@@ -2,9 +2,9 @@ colorize = (args, color) ->
   messages = ['\x1b[1m', "\x1b[#{color}m"]
   for arg in args
     try
-      messages.push if _.isObject arg then JSON.stringify arg else arg
+      messages.push if _.isObject arg then arg.toString() else arg
     catch error
-      messages.push arg.toString()
+      messages.push JSON.stringify arg, null, 2
   messages.push '\x1b[39m', '\x1b[22m\x1b[0m'
   return messages
 @__success = -> process.stdout.write colorize(arguments, '32').join('') + '\r\n'

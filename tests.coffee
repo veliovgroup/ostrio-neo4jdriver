@@ -208,7 +208,10 @@ Tinytest.add 'Neo4jDB - db.query - [SYNC]', (test) -> __SyncTest__ test, 'query'
 query: (cypher, callback) ->
 ###
 Tinytest.add 'Neo4jDB - db.query - [Wrong cypher] [SYNC] (You will see errors at server console)', (test) ->
-  test.equal db.query("MATCh (n:) RETRN n").fetch(), []
+  try
+    db.query("MATCh (n:) RETRN n").fetch()
+  catch e
+    test.isTrue _.isString(e.toString()) and not _.isEmpty e
 
 
 ###
@@ -217,7 +220,7 @@ Tinytest.add 'Neo4jDB - db.query - [Wrong cypher] [SYNC] (You will see errors at
 query: (cypher, callback) ->
 ###
 Tinytest.addAsync 'Neo4jDB - db.query - [Wrong cypher] [ASYNC] (You will see errors at server console)', (test, completed) ->
-  db.query "MATCh (n:) RETRN n", (error, data) ->
+  db.query "MATCh (n) RETRN n", (error, data) ->
     test.isTrue _.isString error
     test.isTrue _.isEmpty data.fetch()
     completed()
