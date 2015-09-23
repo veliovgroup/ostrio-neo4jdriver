@@ -2,7 +2,7 @@ Meteor.startup ->
   db = new Neo4jDB 'http://localhost:7474', {username: 'neo4j', password: '1234'}
 
   unless db.queryOne 'MATCH (n) RETURN n LIMIT 1'
-    db.querySync 'WITH ["Andres","Wes","Rik","Mark","Peter","Kenny","Michael","Stefan","Max","Chris"] AS names FOREACH (r IN range(0,19) | CREATE (:Person {removed: false, updatedAt: timestamp(), name:names[r % size(names)]+" "+r}));'
+    db.querySync 'WITH ["Andres","Wes","Rik","Mark","Peter","Kenny","Michael","Stefan","Max","Chris"] AS names FOREACH (r IN range(0,19) | CREATE (:Person {x: r*100, y: r*50, removed: false, updatedAt: timestamp(), name:names[r % size(names)]+" "+r}));'
 
 
   Meteor.methods
@@ -163,5 +163,17 @@ Meteor.startup ->
           r = db.relationship.get id
           r.delete() if r?.get?()
         , 15000
+      true
+
+    nodeReposition: (id, coords) ->
+      check id, Match.OneOf String, Number
+      id = parseInt id
+      check coords, x: Number, y: Number
+
+      db.nodes(id).properties.set 
+        updatedAt: +new Date
+        x: coords.x
+        y: coords.y
+
       true
 

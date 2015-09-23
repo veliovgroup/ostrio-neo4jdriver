@@ -1,62 +1,72 @@
 MainTemplate = {}
+
+ND = border: 'rgba(0,0,0,0.333)'
+NS = border: 'rgb(0,0,0)'
+ED = color: 'rgba(0,0,0,0.555)'
+ES = color: 'rgb(0,0,0)'
+
 VIS_OPTIONS =
   height: '500px'
+  manipulation: enabled: false
   nodes:
+    physics: false
     shape: 'circle'
-    scaling:
-      min: 30
-      max: 30
-  edges: font: align: 'middle'
+    labelHighlightBold: false
+  edges: 
+    color: ED.color
+    font: align: 'middle'
+    labelHighlightBold: false
   interaction:
-    hover: true
+    hover: false
     hoverConnectedEdges: false
     navigationButtons: false
     selectConnectedEdges: false
-  physics: stabilization: false
+  physics: 
+    stabilization: false
   groups:
     Person:
       borderWidth: 2
-      mass: 3
       color: 
         background: 'rgba(75, 159, 236, 0.95)'
-        border: 'rgba(8, 93, 171, 0.777)'
+        border: ND.border
         highlight:
           background: 'rgba(75, 159, 236, 0.75)'
-          border: 'rgba(8, 93, 171, 0.577)'
+          border: NS.border
         hover:
           background: 'rgba(75, 159, 236, 0.75)'
-          border: 'rgba(8, 93, 171, 0.577)'
+          border: NS.border
     Movie:
-      borderWidth: 3
-      mass: 2
+      borderWidth: 2
       color: 
         background: 'rgba(241, 187, 12, 0.95)'
-        border: 'rgba(212, 107, 12, 0.777)'
+        border: ND.border
         highlight:
           background: 'rgba(241, 187, 12, 0.75)'
-          border: 'rgba(212, 107, 12, 0.577)'
+          border: NS.border
         hover:
           background: 'rgba(241, 187, 12, 0.75)'
-          border: 'rgba(212, 107, 12, 0.577)'
+          border: NS.border
     Place:
-      borderWidth: 4
-      mass: 1
+      borderWidth: 2
       color: 
         background: 'rgba(230, 66, 66, 0.95)'
-        border: 'rgba(107, 9, 9, 0.777)'
+        border: ND.border
         highlight:
           background: 'rgba(230, 66, 66, 0.75)'
-          border: 'rgba(107, 9, 9, 0.577)'
+          border: NS.border
         hover:
           background: 'rgba(230, 66, 66, 0.75)'
-          border: 'rgba(107, 9, 9, 0.577)'
+          border: NS.border
 
 VIS_PREVIEW_OPTIONS = 
   height: '75px'
-  physics: false
+  physics: enabled: false
   interaction:
     hover: false
     selectable: false
+    dragNodes: false
+    dragView: false
+    zoomView: false
 
 
 clearNetwork = (template) ->
@@ -127,19 +137,26 @@ Template.main.onCreated ->
   @resetNodes = (type = false) =>
     switch type
       when false
-        @nodesDS.update {id: @nodeFrom.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeFrom.get() and @_nodes[@nodeFrom.get().id]
-        @nodesDS.update {id: @nodeTo.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeTo.get() and @_nodes[@nodeTo.get().id]
+        @nodesDS.update {id: @nodeFrom.get().id, color: border: ND.border} if @nodeFrom.get() and @_nodes[@nodeFrom.get().id]
+        @nodesDS.update {id: @nodeTo.get().id, color: border: ND.border} if @nodeTo.get() and @_nodes[@nodeTo.get().id]
         @nodeFrom.set false
         @nodeTo.set false
       when 'to'
-        @nodesDS.update {id:@nodeTo.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeTo.get() and @_nodes[@nodeTo.get().id]
+        @nodesDS.update {id:@nodeTo.get().id, color: border: ND.border} if @nodeTo.get() and @_nodes[@nodeTo.get().id]
         @nodeTo.set false
       when 'from'
-        @nodesDS.update {id:@nodeFrom.get().id, font: { background: "rgba(255,255,255,.0)" }} if @nodeFrom.get() and @_nodes[@nodeFrom.get().id]
+        @nodesDS.update {id:@nodeFrom.get().id, color: border: ND.border} if @nodeFrom.get() and @_nodes[@nodeFrom.get().id]
         @nodeFrom.set false
       when 'edge'
-        @edgesDS.update {id: @relationship.get().id, font: { background: "rgba(255,255,255,.0)" }} if @relationship.get() and @_edges[@relationship.get().id]
+        @edgesDS.update {id: @relationship.get().id, color: ED.color} if @relationship.get() and @_edges[@relationship.get().id]
         @relationship.set false
+      when 'all'
+        @nodeTo.set false
+        @nodeFrom.set false
+        @relationship.set false
+        @nodesDS.update ({id, color: border: ND.border} for id in @nodesDS.getIds())
+        @edgesDS.update ({id, color: ED.color} for id in @edgesDS.getIds())
+
 
 Template.main.helpers
   hasSelection: -> !!(Template.instance().nodeFrom.get() or Template.instance().nodeTo.get() or Template.instance().relationship.get())
@@ -168,7 +185,8 @@ Template.main.events
           template.nodesDS.remove _n.id
           delete template._nodes[_n.id]
           template.resetNodes()
-          template.resetNodes('edge')
+          template.resetNodes 'edge'
+        return
     false
 
   'submit form#createNode': (e, template) ->
@@ -227,28 +245,32 @@ Template.main.onRendered ->
     if data?.nodes?[0]
       data.nodes[0] = parseInt data.nodes[0]
       unless @nodeFrom.get()
-        @nodesDS.update {id: data.nodes[0], font: { background: "#FBFD70" }}
+        @nodesDS.update {id: data.nodes[0], color: border: NS.border}
         @nodeFrom.set @_nodes[data.nodes[0]]
 
       else if @nodeFrom.get() and not @nodeTo.get()
         unless @nodeFrom.get().id is data.nodes[0]
-          @nodesDS.update {id: data.nodes[0], font: { background: "#FBFD70" }}
+          @nodesDS.update {id: data.nodes[0], color: border: NS.border}
           @nodeTo.set @_nodes[data.nodes[0]]
 
       else if @nodeFrom.get() and @nodeTo.get()
         @resetNodes()
 
-        @nodesDS.update {id: data.nodes[0], font: { background: "#FBFD70" }}
+        @nodesDS.update {id: data.nodes[0], color: border: NS.border}
         @nodeFrom.set @_nodes[data.nodes[0]]
 
     else if data?.edges?[0]
       @resetNodes()
 
-      @edgesDS.update {id: data.edges[0], font: { background: "#FBFD70" }}
+      @edgesDS.update {id: data.edges[0], color: ES.color}
       @relationship.set @_edges[data.edges[0]]
 
     else if not data?.nodes?[0] and not data?.edges?[0]
       @resetNodes()
+
+  @Network.addEventListener 'dragEnd', (data) =>
+    Meteor.call 'nodeReposition', data.nodes[0], @Network.getPositions()[data.nodes[0]] if data?.nodes?[0]
+
 
   lastTimestamp = 0
   fetchData = =>
@@ -266,7 +288,7 @@ Template.main.onRendered ->
           else
             if @_nodes?[node.id]
               unless EJSON.equals node, @_nodes[node.id]
-                @nodesDS.update node 
+                @nodesDS.update node
                 @nodeFrom.set node if @nodeFrom.get() and @nodeFrom.get().id is node.id
                 @nodeTo.set node if @nodeTo.get() and @nodeTo.get().id is node.id
                 ###
@@ -320,8 +342,22 @@ Template.createRelationship.onRendered ->
   @from = MainTemplate.nodeFrom.get()
   @to = MainTemplate.nodeTo.get()
   makeFakeRelation @, @from, @to, document.getElementById 'createRelPreview'
+  MainTemplate.previewEdge = 
+    id: Math.floor(Math.random()*(99999-1+1)+1)
+    from: @from.id
+    to: @to.id
+    arrows: 'to'
+    dashes: true
+    label: 'KNOWS'
+    group: 'KNOWS'
 
-Template.createRelationship.onDestroyed -> clearNetwork @
+  MainTemplate.edgesDS.add MainTemplate.previewEdge
+
+
+Template.createRelationship.onDestroyed -> 
+  clearNetwork @
+  MainTemplate.edgesDS.remove MainTemplate.previewEdge.id
+  delete MainTemplate.previewEdge
 
 Template.createRelationship.events
   'submit form#createRelationship': (e, template) ->
@@ -346,9 +382,10 @@ Template.createRelationship.events
     false
 
   'change select#type': (e, template) ->
-    template.relationship.label = e.target.value
-    template.relationship.group = e.target.value
+    template.relationship.label = MainTemplate.previewEdge.label = e.target.value
+    template.relationship.group = MainTemplate.previewEdge.group = e.target.value
     template.edgesDS.update template.relationship
+    MainTemplate.edgesDS.update MainTemplate.previewEdge
 
 ###
 Template.updateRelationship
