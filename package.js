@@ -7,17 +7,8 @@ Package.describe({
 
 Package.onUse(function(api) {
   api.versionsFrom('1.2.0.1');
-  api.use(['check', 'http', 'coffeescript', 'underscore', 'random', 'ejson', 'ecmascript'], 'server');
-  api.addFiles([
-    'helpers.js',
-    'cursor.coffee',
-    'data.coffee',
-    'relationship.coffee',
-    'node.coffee',
-    'endpoint.coffee',
-    'transaction.coffee',
-    'neo4jdriver.coffee'
-  ], 'server');
+  api.use(['coffeescript'], 'server');
+  api.addFiles(['driver.coffee'], 'server');
 
   api.export([
     'Neo4jCursor',
@@ -31,10 +22,17 @@ Package.onUse(function(api) {
 });
 
 Package.onTest(function(api) {
-  api.use(['coffeescript', 'ostrio:neo4jdriver', 'tinytest', 'underscore', 'ejson', 'ecmascript'], 'server');
-  api.addFiles(['helpers.js', 'tests.coffee'], 'server');
+  api.use([
+    'coffeescript', 
+    'ostrio:neo4jdriver', 
+    'tinytest', 
+    'underscore', 
+    'ejson'
+  ], 'server');
+  api.addFiles(['tests.coffee'], 'server');
 });
 
 Npm.depends({
-  'needle': '0.10.0'
+  'needle': '0.10.0',
+  'neo4j-fiber': '1.0.0-gamma.1.0.2'
 })

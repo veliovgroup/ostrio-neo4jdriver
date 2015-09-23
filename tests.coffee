@@ -1,3 +1,7 @@
+Fiber  = Npm.require 'fibers'
+Future = Npm.require 'fibers/future'
+bound  = Meteor.bindEnvironment (callback) => callback()
+
 db = new Neo4jDB 'http://localhost:7474', {username: 'neo4j', password: '1234'}
 
 
@@ -78,14 +82,14 @@ __BasicsTest__ = (test, funcName) ->
   db[funcName] 
     cypher: "MATCH (n:#{funcName}TestBasics {foo: {data}}) RETURN n"
     parameters: data: 'bar'
-    cb: (error, cursor) -> fut.return cursor
+    cb: (error, cursor) -> bound -> fut.return cursor
   cursors.push fut.wait()
 
   fut = new Future()
   db[funcName] 
     cypher: "MATCH (n:#{funcName}TestBasics {foo: {data}}) RETURN n"
     opts: data: 'bar'
-    callback: (error, cursor) -> fut.return cursor
+    callback: (error, cursor) -> bound -> fut.return cursor
   cursors.push fut.wait()
 
   for cursor in cursors
@@ -120,17 +124,19 @@ __BasicsTest__ = (test, funcName) ->
 __AsyncBasicsTest__ = (test, completed, funcName) ->
   test.isTrue _.isFunction(db[funcName]), "[#{funcName}] Exists on DB object"
   db[funcName] "CREATE (n:#{funcName}AsyncTest {data}) RETURN n", {data: Async: "#{funcName}AsyncTest"}, (error, cursor) ->
-    test.isNull error, "No error"
-    nodes = cursor.fetch()
-    test.equal nodes.length, 1, "Only one node is created"
-    test.isTrue _.has nodes[0], 'n'
-    __nodeCRC__ test, nodes[0].n, ["#{funcName}AsyncTest"], {Async: "#{funcName}AsyncTest"}
-
-    db[funcName] "MATCH (n:#{funcName}AsyncTest) DELETE n", (error, cursor) ->
+    bound -> 
       test.isNull error, "No error"
       nodes = cursor.fetch()
-      test.equal nodes.length, 0, "No nodes is returned on DELETE"
-      completed()
+      test.equal nodes.length, 1, "Only one node is created"
+      test.isTrue _.has nodes[0], 'n'
+      __nodeCRC__ test, nodes[0].n, ["#{funcName}AsyncTest"], {Async: "#{funcName}AsyncTest"}
+
+      db[funcName] "MATCH (n:#{funcName}AsyncTest) DELETE n", (error, cursor) ->
+        bound -> 
+          test.isNull error, "No error"
+          nodes = cursor.fetch()
+          test.equal nodes.length, 0, "No nodes is returned on DELETE"
+          completed()
 
 __nodesInstanceCRC__ = (test, node) ->
   test.instanceOf node, Neo4jNode
@@ -211,7 +217,7 @@ Tinytest.add 'Neo4jDB - db.query - [Wrong cypher] [SYNC] (You will see errors at
   try
     db.query("MATCh (n:) RETRN n").fetch()
   catch e
-    test.isTrue _.isString(e.toString()) and not _.isEmpty e
+    test.isTrue _.isString(e.toString()) and e.toString().length > 0
 
 
 ###
@@ -219,11 +225,13 @@ Tinytest.add 'Neo4jDB - db.query - [Wrong cypher] [SYNC] (You will see errors at
 @description Passing wrong Cypher query, returns error and prints an error to console
 query: (cypher, callback) ->
 ###
-Tinytest.addAsync 'Neo4jDB - db.query - [Wrong cypher] [ASYNC] (You will see errors at server console)', (test, completed) ->
-  db.query "MATCh (n) RETRN n", (error, data) ->
-    test.isTrue _.isString error
-    test.isTrue _.isEmpty data.fetch()
-    completed()
+Tinytest.addAsync 'Neo4jDB - db.query - [Wrong cypher] [ASYNC] (You will see errors at server console)', (test, completed) -> 
+  bound ->
+    db.query "MATCh (n) RETRN n", (error, data) ->
+      bound -> 
+        test.isTrue _.isString error
+        test.isTrue _.isEmpty data.fetch()
+        completed()
 
 ###
 @test 
@@ -307,7 +315,7 @@ Tinytest.add 'Neo4jDB - db.queryOne - [ForSureNonExists]', (test) ->
 @description Test queryAsync
 queryAsync: (cypher, opts, callback) ->
 ###
-Tinytest.addAsync 'Neo4jDB - db.queryAsync - [no callback]', (test, completed) ->
+Tinytest.addAsync 'Neo4jDB - db.queryAsync - [no callback]', (test, completed) -> 
   test.isTrue _.isFunction(db.queryAsync), "[queryAsync] Exists on DB object"
   db.queryAsync "CREATE (n:QueryAsyncNoCBTest {data}) RETURN n", {data: queryAsyncNoCB: 'queryAsyncNoCB'}
 
@@ -520,7 +528,7 @@ Tinytest.add 'Neo4jTransaction - last - ()', (test) ->
 @description Check Neo4jTransaction `.execute()` and  `.commit()` methods 
 db.transaction().execute().commit(cb:function())
 ###
-Tinytest.addAsync 'Neo4jTransaction - commit - ({Object}) [ASYNC]', (test, completed) ->
+Tinytest.addAsync 'Neo4jTransaction - commit - ({Object}) [ASYNC]', (test, completed) -> 
   db.transaction().commit
     query: "CREATE (n:TransactionsCommitAsync {foo: {data}}) RETURN n"
     params: data: 'bar'
@@ -536,7 +544,7 @@ Tinytest.addAsync 'Neo4jTransaction - commit - ({Object}) [ASYNC]', (test, compl
 @description Check Neo4jTransaction `.execute()` and  `.commit()` methods 
 db.transaction().execute().commit(function)
 ###
-Tinytest.addAsync 'Neo4jTransaction - commit - ({Callback}) [ASYNC] 2', (test, completed) ->
+Tinytest.addAsync 'Neo4jTransaction - commit - ({Callback}) [ASYNC] 2', (test, completed) -> 
   db.transaction("CREATE (n:TransactionsCommitAsync2 {foo: {data}}) RETURN n", {data: 'bar'}).commit (err, res)->
     bound ->
       node = res[0].fetch()[0]
@@ -549,7 +557,7 @@ Tinytest.addAsync 'Neo4jTransaction - commit - ({Callback}) [ASYNC] 2', (test, c
 @description Check Neo4jTransaction `.commit()` method within reactive nodes 
 db.transaction()().commit()
 ###
-Tinytest.addAsync 'Neo4jTransaction - commit - ({Object}) [ASYNC] [REACTIVE]', (test, completed) ->
+Tinytest.addAsync 'Neo4jTransaction - commit - ({Object}) [ASYNC] [REACTIVE]', (test, completed) -> 
   db.transaction().commit
     query: "CREATE (n:TransactionsCommitReactiveAsync {foo: {data}}) RETURN n"
     params: data: 'TCRA'
@@ -588,7 +596,7 @@ Tinytest.add 'Neo4jTransaction - commit - () [EMPTY]', (test) ->
 @description Check next tick batch
 db.queryAsync(query)
 ###
-Tinytest.addAsync 'Neo4jDB - core - Sending multiple async queries inside one Batch on next tick', (test, completed) ->
+Tinytest.addAsync 'Neo4jDB - core - Sending multiple async queries inside one Batch on next tick', (test, completed) -> 
   conf = [
     'a'
     'b'
@@ -673,7 +681,7 @@ Tinytest.add 'Neo4jDB - db.batch - ([Object]) [With custom ID]', (test) ->
 @description Check batch ASYNC
 db.batch(tasks, callback)
 ###
-Tinytest.addAsync 'Neo4jDB - db.batch - ([Object]) [With custom ID] [ASYNC]', (test, completed) ->
+Tinytest.addAsync 'Neo4jDB - db.batch - ([Object]) [With custom ID] [ASYNC]', (test, completed) -> 
   db.batch [
       method: "POST"
       to: db.__service.cypher.endpoint
