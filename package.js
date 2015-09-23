@@ -6,9 +6,10 @@ Package.describe({
 });
 
 Package.onUse(function(api) {
-  api.versionsFrom('1.0');
+  api.versionsFrom('1.2.0.1');
+  api.use(['check', 'http', 'coffeescript', 'underscore', 'random', 'ejson', 'ecmascript'], 'server');
   api.addFiles([
-    'helpers.coffee',
+    'helpers.js',
     'cursor.coffee',
     'data.coffee',
     'relationship.coffee',
@@ -27,12 +28,11 @@ Package.onUse(function(api) {
     'Neo4jTransaction',
     'Neo4jDB'
   ], 'server');
-  api.use(['check', 'http', 'coffeescript', 'underscore', 'random', 'ejson'], 'server');
 });
 
 Package.onTest(function(api) {
-  api.use(['coffeescript', 'ostrio:neo4jdriver', 'tinytest', 'underscore'], 'server');
-  api.addFiles(['helpers.coffee', 'tests.coffee'], 'server');
+  api.use(['coffeescript', 'ostrio:neo4jdriver', 'tinytest', 'underscore', 'ejson', 'ecmascript'], 'server');
+  api.addFiles(['helpers.js', 'tests.coffee'], 'server');
 });
 
 Npm.depends({
