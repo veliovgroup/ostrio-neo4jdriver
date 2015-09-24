@@ -1,6 +1,6 @@
 [![Join the chat at https://gitter.im/VeliovGroup/ostrio-neo4jdriver](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/VeliovGroup/ostrio-neo4jdriver?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-![Neo4j Driver](https://raw.githubusercontent.com/VeliovGroup/ostrio-Neo4jdriver/dev/logo.png)
+![Neo4j Driver](https://raw.githubusercontent.com/VeliovGroup/ostrio-Neo4jdriver/master/logo.min.png)
 
  - __This is server-side only package, to retrieve data from the client use [call(s)](http://docs.meteor.com/#/full/meteor_call) and [methods](http://docs.meteor.com/#/full/meteor_methods)__
  - This package uses [batch operations](http://neo4j.com/docs/2.2.5/rest-api-batch-ops.html) to perform queries, than means if you sending multiple queries to Neo4j in current event loop, all of them will be sent in closest (next) event loop inside of the one batch
