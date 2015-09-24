@@ -1,6 +1,10 @@
 Changelog
 =========
 
+### [1.0.2](https://github.com/VeliovGroup/ostrio-neo4jdriver/releases/tag/v1.0.2) *2015-09-24*
+ - New core npm lib [neo4j-fiber](https://www.npmjs.com/package/neo4j-fiber)
+ - [Demo app](https://github.com/VeliovGroup/ostrio-neo4jdriver/tree/master/demo)
+
 ### [0.2.15](https://github.com/VeliovGroup/ostrio-neo4jdriver/releases/tag/v0.2.15)
 
  - Trying to fix issue described [here](https://github.com/VeliovGroup/ostrio-neo4jdriver/issues/11)

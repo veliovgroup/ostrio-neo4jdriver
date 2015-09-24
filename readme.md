@@ -1,93 +1,126 @@
 [![Join the chat at https://gitter.im/VeliovGroup/ostrio-neo4jdriver](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/VeliovGroup/ostrio-neo4jdriver?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-Wrapper for [node-neo4j](https://github.com/thingdom/node-neo4j) by [The Thingdom](https://github.com/thingdom) to be used with Meteor apps
+ - __This is server-side only package, to retrieve data from the client use [call(s)](http://docs.meteor.com/#/full/meteor_call) and [methods](http://docs.meteor.com/#/full/meteor_methods)__
+ - This package uses [batch operations](http://neo4j.com/docs/2.2.5/rest-api-batch-ops.html) to perform queries, than means if you sending multiple queries to Neo4j in current event loop, all of them will be sent in closest (next) event loop inside of the one batch
+ - This package was tested and works like a charm with [GrapheneDB](http://www.graphenedb.com)
+ - Please see demo hosted on [Meteor (GrapheneDB)](http://neo4j-graph.meteor.com) and on [Heroku (GrapheneDB Add-on)](http://neo4j-graph.herokuapp.com)
+ - To find more about how to use Cypher read [Neo4j cheat sheet](http://neo4j.com/docs/2.2.5/cypher-refcard)
 
 See also [Isomorphic Reactive Driver](https://github.com/VeliovGroup/ostrio-Neo4jreactivity).
 
-### Install to meteor
+Install to meteor
+=======
 ```
 meteor add ostrio:neo4jdriver
 ```
 
-### Usage
-```
-npm install neo4j
-```
+Demo Apps
+=======
+ - Hosted on [Meteor (GrapheneDB)](http://neo4j-graph.meteor.com) and on [Heroku (GrapheneDB Add-on)](http://neo4j-graph.herokuapp.com)
+ - Check out it's [source code](https://github.com/VeliovGroup/ostrio-neo4jdriver/tree/master/demo)
 
-##### In your code:
-Create file in ```./server/lib/Neo4jDriver.js```
-```javascript
-this.N4JDB = new Meteor.Neo4j(/* http://username:password@domain.com */); //From this point N4JDB variable available everywhere in your project
-```
+API
+=======
+Please see full API with examples in [neo4j-fiber wiki](https://github.com/VeliovGroup/neo4j-fiber/wiki)
 
-Next, just use it.
-
-##### Examples:
-```javascript
-var node = N4JDB.createNode({hello: 'world'});     // instantaneous, but...
-node.save(function (err, node) {    // ...this is what actually persists.
-    if (err) {
-        console.error('Error saving new node to database:', err);
-    } else {
-        console.log('Node saved to database with id:', node.id);
-    }
-});
-```
-
-```javascript
-/*
- * Create user node with _id
- */
-Accounts.onCreateUser(function(options, user) {
-
-    N4JDB.query('CREATE (:User {_id:"' + user._id + '"})', null, function(err, res){
-        if(error){
-            //handle error here
-        }
-    });
-});
-```
-
+Basic Usage
+=======
 ```coffeescript
-###
-This example in coffee
-Here we create some group and set our user as it's owner
-Next, we add relation :owns from owner to newly created group in one query
-###
-groupId = GroupsCollection.insert title: 'Some Group Title', (error) ->
-    error if error 
-        #handle error here
+db = new Neo4jDB 'http://localhost:7474', {
+    username: 'neo4j'
+    password: '1234'
+  }
+  
+cursor = db.query 'CREATE (n:City {props}) RETURN n', 
+  props: 
+    title: 'Ottawa'
+    lat: 45.416667
+    long: -75.683333
 
-N4JDB.query 'Match (o:User {_id:"' + Meteor.userId() + '"}) ' + 
-            'CREATE (g:Group {_id:"' + groupId + '", owner: "' + Meteor.userId() + '", active: true}) ' + 
-            'CREATE (o) -[:owns]-> (g)', null, (error, res) ->
-    error if error
-        #handle error here
+console.log cursor.fetch()
+# Returns array of nodes:
+# [{
+#   n: {
+#     long: -75.683333,
+#     lat: 45.416667,
+#     title: "Ottawa",
+#     id: 8421,
+#     labels": ["City"],
+#     metadata: {
+#       id: 8421,
+#       labels": ["City"]
+#     }
+#   }
+# }]
+
+# Iterate through results as plain objects:
+cursor.forEach (node) ->
+  console.log node
+  # Returns node as Object:
+  # {
+  #   n: {
+  #     long: -75.683333,
+  #     lat: 45.416667,
+  #     title: "Ottawa",
+  #     id: 8421,
+  #     labels": ["City"],
+  #     metadata: {
+  #       id: 8421,
+  #       labels": ["City"]
+  #     }
+  #   }
+  # }
+
+# Iterate through cursor as `Neo4jNode` instances:
+cursor.each (node) ->
+  console.log node.n.get()
+  # {
+  #   long: -75.683333,
+  #   lat: 45.416667,
+  #   title: "Ottawa",
+  #   id: 8421,
+  #   labels": ["City"],
+  #   metadata: {
+  #     id: 8421,
+  #     labels": ["City"]
+  #   }
+  # }
 ```
-
-```coffeescript
-###
-Register catch all callback
-Note - you may register as many callbacks as you need
-@param query {string} - Cypher query
-@param opts {object} - A map of parameters for the Cypher query 
-###
-N4JDB = new Neo4j()
-N4JDB.listen (query, opts) ->
-    console.log query, opts
-
-```
-
-**For more info see: [node-neo4j](https://github.com/thingdom/node-neo4j)**
-Code licensed under Apache v. 2.0: [node-neo4j License](https://github.com/thingdom/node-neo4j/blob/master/LICENSE) 
 
 -----
 #### Testing & Dev usage
+
 ##### Local usage
 
- - Download (or clone) to local dir
- - **Stop meteor if running**
- - Run ```mrt link-package [*full path to folder with package*]``` in a project dir
- - Then run ```meteor add ostrio:neo4jdriver```
- - Run ```meteor``` in a project dir
- - From now any changes in ostrio:neo4jdriver package folder will cause rebuilding of project app
+To use the ostrio-neo4jdriver in a project and benefit from updates to the driver as they are released, you can keep your project and the driver in separate directories, and create a symlink between them.
+
+```shell
+# Stop meteor if it is running
+$ cd /directory/of/your/project
+# If you don't have a Meteor project yet, create a new one:
+$ meteor create MyProject
+$ cd MyProject
+# Create `packages` directory inside project's dir
+$ mkdir packages
+$ cd packages
+# Clone this repository to a local `packages` directory
+$ git clone --bare https://github.com/VeliovGroup/ostrio-neo4jdriver.git
+# If you need dev branch, switch into it
+$ git checkout dev
+# Go back into project's directory
+$ cd ../
+$ meteor add ostrio:neo4jdriver
+# Do not forget to run Neo4j database, before start work with package
+```
+
+From now any changes in ostrio:neo4jdriver package folder will cause your project app to rebuild.
+
+
+##### To run tests:
+```shell
+# Go to local package folder
+$ cd packages/ostrio-neo4jdriver
+# Edit first line of `tests.coffee` to set connection to your Neo4j database
+# Do not forget to run Neo4j database
+$ meteor test-packages ./
+```
