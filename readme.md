@@ -13,6 +13,7 @@ Install to meteor
 ```
 meteor add ostrio:neo4jdriver
 ```
+If you are expecting issue with `fibers` (`Error: Cannot find module 'fibers'`), install version with postfix `-fiber`, like: `ostrio:neo4jdriver@1.0.2-fiber`
 
 Demo Apps
 =======
