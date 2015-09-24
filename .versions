@@ -23,7 +23,7 @@ html-tools@1.0.5
 htmljs@1.0.5
 id-map@1.0.4
 jquery@1.11.4
-local-test:ostrio:neo4jdriver@1.0.2
+local-test:ostrio:neo4jdriver@1.0.2-fiber
 logging@1.0.8
 meteor@1.1.7
 minimongo@1.0.9
@@ -32,7 +32,7 @@ mongo-id@1.0.1
 npm-mongo@1.4.39_1
 observe-sequence@1.0.7
 ordered-dict@1.0.4
-ostrio:neo4jdriver@1.0.2
+ostrio:neo4jdriver@1.0.2-fiber
 promise@0.4.8
 random@1.0.4
 reactive-var@1.0.6
