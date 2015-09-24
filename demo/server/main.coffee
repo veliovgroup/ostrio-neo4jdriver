@@ -83,7 +83,7 @@ Meteor.startup ->
         Meteor.setTimeout ->
           n = db.nodes id
           n.delete() if n?.get?()
-        , 30000
+        , 2000
       true
       
     createRelationship: (form) ->
@@ -128,7 +128,7 @@ Meteor.startup ->
             Meteor.setTimeout ->
               r = db.relationship.get form.id
               r.delete() if r?.get?()
-            , 15000
+            , 1750
 
             r = n1.to(n2, form.type, {description: form.description, updatedAt}).get()
           else
@@ -162,7 +162,7 @@ Meteor.startup ->
         Meteor.setTimeout ->
           r = db.relationship.get id
           r.delete() if r?.get?()
-        , 15000
+        , 1750
       true
 
     nodeReposition: (id, coords) ->
@@ -176,4 +176,3 @@ Meteor.startup ->
         y: coords.y
 
       true
-

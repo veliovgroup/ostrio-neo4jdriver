@@ -48,7 +48,7 @@ npm-mongo@1.4.39_1
 observe-sequence@1.0.7
 ordered-dict@1.0.4
 ostrio:jsextensions@0.0.4
-ostrio:neo4jdriver@1.0.0
+ostrio:neo4jdriver@1.0.2
 ostrio:templatehelpers@0.3.1
 promise@0.4.8
 random@1.0.4
