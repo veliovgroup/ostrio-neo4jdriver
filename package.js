@@ -1,12 +1,12 @@
 Package.describe({
   name: 'ostrio:neo4jdriver',
   summary: 'Neo4j REST API client, with support of https and GrapheneDB',
-  version: '1.0.0',
+  version: '1.0.2',
   git: 'https://github.com/VeliovGroup/ostrio-neo4jdriver.git'
 });
 
 Package.onUse(function(api) {
-  api.versionsFrom('1.2.0.1');
+  api.versionsFrom('1.0');
   api.use(['coffeescript'], 'server');
   api.addFiles(['driver.coffee'], 'server');
 
@@ -34,5 +34,5 @@ Package.onTest(function(api) {
 
 Npm.depends({
   'needle': '0.10.0',
-  'neo4j-fiber': '1.0.0-gamma.1.0.2'
+  'neo4j-fiber': '1.0.0-meteor'
 })
