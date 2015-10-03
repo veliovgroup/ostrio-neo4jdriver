@@ -18,8 +18,8 @@ meteor add ostrio:neo4jdriver
 
 Known issues
 =======
- - `Error: Cannot find module 'fibers'` - install version with `-fiber` postfix, like: `ostrio:neo4jdriver@1.0.2-fiber`
- - `error: neo4jdriver is not compatible with architecture...` - install version without `-fibers` postfix, like: `ostrio:neo4jdriver@1.0.2`
+ - `Error: Cannot find module 'fibers'` - install version __with__ `-fiber` postfix, like: `ostrio:neo4jdriver@1.0.2-fiber`
+ - `error: neo4jdriver is not compatible with architecture...` - install version __without__ `-fibers` postfix, like: `ostrio:neo4jdriver@1.0.2`
 
 Demo Apps
 =======
