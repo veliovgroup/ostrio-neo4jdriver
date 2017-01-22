@@ -2392,7 +2392,7 @@ Tinytest.add 'Neo4jDB - db.constraint - create() / get() / drop()', (test) ->
     type: 'UNIQUENESS'
     property_keys: [ 'uuid' ]
 
-  node = db.nodes({uuid: "#{Math.floor(Math.random()*(999999999-1+1)+1)}"}).labels.set('Special')
+  node = db.nodes({uuid: "#{Math.floor(Math.random()*999999998)}"}).labels.set('Special')
   test.equal db.constraint.create('Special', ['uuid']), res
   test.equal db.constraint.get(), [res]
   test.equal db.constraint.get('Special'), [res]
@@ -2414,7 +2414,7 @@ Tinytest.add 'Neo4jDB - db.index - create() / get() / drop()', (test) ->
     label: 'Special'
     property_keys: [ 'uuid' ]
 
-  node = db.nodes({uuid: "#{Math.floor(Math.random()*(999999999-1+1)+1)}"}).labels.set('Special')
+  node = db.nodes({uuid: "#{Math.floor(Math.random()*999999998)}"}).labels.set('Special')
   test.equal _.pick((db.index.create('Special', ['uuid']) || {}), 'label', 'property_keys'), res
   test.equal [_.pick((db.index.get('Special')[0] || {}), 'label', 'property_keys')], [res]
   test.equal db.index.drop('Special', 'uuid'), []
@@ -2429,7 +2429,7 @@ n.index.drop()
 ###
 Tinytest.add 'Neo4jNode - n.index - create() / get() / drop() (you will see `UnknownFailure` error in console)', (test) ->
 
-  node = db.nodes({uuid: "#{Math.floor(Math.random()*(999999999-1+1)+1)}"}).labels.set('Special')
+  node = db.nodes({uuid: "#{Math.floor(Math.random()*999999998)}"}).labels.set('Special')
   index = node.index.create('Special', 'uuid')
   test.isTrue _.isObject index
   uri = index.indexed
@@ -2450,7 +2450,7 @@ Tinytest.add 'Neo4jRelationship - r.index - create() / get() / drop()', (test) -
 
   n1 = db.nodes()
   n2 = db.nodes()
-  r = n1.to n2, 'Special', {uuid: "#{Math.floor(Math.random()*(999999999-1+1)+1)}"}
+  r = n1.to n2, 'Special', {uuid: "#{Math.floor(Math.random()*999999998)}"}
   index = r.index.create('Special', 'uuid')
   test.isTrue _.isObject index
   uri = index.indexed
