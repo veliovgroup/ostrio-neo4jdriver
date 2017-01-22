@@ -225,10 +225,9 @@ Tinytest.add 'Neo4jDB - db.query - [Wrong cypher] [SYNC] (You will see errors at
 @description Passing wrong Cypher query, returns error and prints an error to console
 query: (cypher, callback) ->
 ###
-Tinytest.addAsync 'Neo4jDB - db.query - [Wrong cypher] [ASYNC] (You will see errors at server console)', (test, completed) -> 
-  bound ->
+Tinytest.addAsync 'Neo4jDB - db.query - [Wrong cypher] [ASYNC] (You will see errors at server console)', (test, completed) ->
     db.query "MATCh (n) RETRN n", (error, data) ->
-      bound -> 
+      bound ->
         test.isTrue _.isString error
         test.isTrue _.isEmpty data.fetch()
         completed()
