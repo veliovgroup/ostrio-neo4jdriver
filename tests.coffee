@@ -629,7 +629,7 @@ Tinytest.addAsync 'Neo4jDB - core - Sending multiple async queries inside one Ba
 db.graph()
 ###
 Tinytest.addAsync 'Neo4jDB - db.graph - (String) [BASICS]', (test, completed) ->
-  db.querySync "CREATE (a:FirstTest)-[r:KNOWS]->(b:SecondTest), (a:FirstTest)-[r2:WorkWith]->(c:ThirdTest), (c:ThirdTest)-[r3:KNOWS]->(b:SecondTest)"
+  db.querySync "CREATE (a:FirstTest)-[r:KNOWS]->(b:SecondTest), (a)-[r2:WorkWith]->(c:ThirdTest), (c)-[r3:KNOWS]->(b)"
   graph = db.graph "MATCH ()-[r]-() RETURN r"
   test.instanceOf graph, Neo4jCursor
   i = 0
@@ -2415,8 +2415,8 @@ Tinytest.add 'Neo4jDB - db.index - create() / get() / drop()', (test) ->
     property_keys: [ 'uuid' ]
 
   node = db.nodes({uuid: "#{Math.floor(Math.random()*(999999999-1+1)+1)}"}).labels.set('Special')
-  test.equal db.index.create('Special', ['uuid']), res
-  test.equal db.index.get('Special'), [res]
+  test.equal _.pick((db.index.create('Special', ['uuid']) || {}), 'label', 'property_keys'), res
+  test.equal [_.pick((db.index.get('Special')[0] || {}), 'label', 'property_keys')], [res]
   test.equal db.index.drop('Special', 'uuid'), []
   node.delete()
 
@@ -2491,34 +2491,41 @@ Tinytest.add 'Neo4jNode - path - (node)', (test) ->
   test.equal dijkstra[0].end, n4.get().id
 
   test.equal allSimplePaths.length, 2
-  test.equal allSimplePaths[0].directions, [ '<-', '<-' ]
-  test.equal allSimplePaths[0].start, n4.get().id
-  test.equal allSimplePaths[0].nodes, [n4.get().id, n3.get().id, n1.get().id]
-  test.equal allSimplePaths[0].length, 2
-  test.equal allSimplePaths[0].relationships, [r4.get().id, r1.get().id]
-  test.equal allSimplePaths[0].end, n1.get().id
-
-  test.equal allSimplePaths[1].directions, [ '<-', '<-', '<-' ]
-  test.equal allSimplePaths[1].start, n4.get().id
-  test.equal allSimplePaths[1].nodes, [n4.get().id, n3.get().id, n2.get().id, n1.get().id]
-  test.equal allSimplePaths[1].length, 3
-  test.equal allSimplePaths[1].relationships, [r4.get().id, r3.get().id, r2.get().id]
-  test.equal allSimplePaths[1].end, n1.get().id
+  i = -1
+  while ++i < allSimplePaths.length
+    if allSimplePaths[i].length is 2
+      test.equal allSimplePaths[i].directions, [ '<-', '<-' ]
+      test.equal allSimplePaths[i].start, n4.get().id
+      test.equal allSimplePaths[i].nodes, [n4.get().id, n3.get().id, n1.get().id]
+      test.equal allSimplePaths[i].length, 2
+      test.equal allSimplePaths[i].relationships, [r4.get().id, r1.get().id]
+      test.equal allSimplePaths[i].end, n1.get().id
+    if allSimplePaths[i].length is 3
+      test.equal allSimplePaths[i].directions, [ '<-', '<-', '<-' ]
+      test.equal allSimplePaths[i].start, n4.get().id
+      test.equal allSimplePaths[i].nodes, [n4.get().id, n3.get().id, n2.get().id, n1.get().id]
+      test.equal allSimplePaths[i].length, 3
+      test.equal allSimplePaths[i].relationships, [r4.get().id, r3.get().id, r2.get().id]
+      test.equal allSimplePaths[i].end, n1.get().id
 
   test.equal allPaths.length, 2
-  test.equal allPaths[0].directions, [ '->', '->' ]
-  test.equal allPaths[0].start, n1.get().id
-  test.equal allPaths[0].nodes, [n1.get().id, n3.get().id, n4.get().id]
-  test.equal allPaths[0].length, 2
-  test.equal allPaths[0].relationships, [r1.get().id, r4.get().id]
-  test.equal allPaths[0].end, n4.get().id
+  i = -1
+  while ++i < allPaths.length
+    if allPaths[i].length is 2
+      test.equal allPaths[i].directions, [ '->', '->' ]
+      test.equal allPaths[i].start, n1.get().id
+      test.equal allPaths[i].nodes, [n1.get().id, n3.get().id, n4.get().id]
+      test.equal allPaths[i].length, 2
+      test.equal allPaths[i].relationships, [r1.get().id, r4.get().id]
+      test.equal allPaths[i].end, n4.get().id
 
-  test.equal allPaths[1].directions, [ '->', '->', '->' ]
-  test.equal allPaths[1].start, n1.get().id
-  test.equal allPaths[1].nodes, [n1.get().id, n2.get().id, n3.get().id, n4.get().id]
-  test.equal allPaths[1].length, 3
-  test.equal allPaths[1].relationships, [r2.get().id, r3.get().id, r4.get().id]
-  test.equal allPaths[1].end, n4.get().id
+    if allPaths[i].length is 3
+      test.equal allPaths[i].directions, [ '->', '->', '->' ]
+      test.equal allPaths[i].start, n1.get().id
+      test.equal allPaths[i].nodes, [n1.get().id, n2.get().id, n3.get().id, n4.get().id]
+      test.equal allPaths[i].length, 3
+      test.equal allPaths[i].relationships, [r2.get().id, r3.get().id, r4.get().id]
+      test.equal allPaths[i].end, n4.get().id
 
   test.equal shortestPath.length, 1
   test.equal shortestPath[0].directions, [ '->', '->' ]
