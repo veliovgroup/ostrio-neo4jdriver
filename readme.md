@@ -19,7 +19,7 @@ meteor add ostrio:neo4jdriver
 
 Import
 =======
-```
+```js
 import { Neo4jDB } from 'meteor/ostrio:neo4jdriver';
 // Full list of available classes (for reference):
 // import {Neo4jCursor, Neo4jRelationship, Neo4jNode, Neo4jData, Neo4jEndpoint, Neo4jTransaction, Neo4jDB} from 'meteor/ostrio:neo4jdriver';
