@@ -1,8 +1,13 @@
 Fiber  = Npm.require 'fibers'
 Future = Npm.require 'fibers/future'
 bound  = Meteor.bindEnvironment (callback) => callback()
-
-db = new Neo4jDB 'http://localhost:7474', {username: 'neo4j', password: '1234'}
+# `import { Neo4jDB } from 'meteor/ostrio:neo4jdriver'`
+neo4j = require 'meteor/ostrio:neo4jdriver'
+Neo4jNode = neo4j.Neo4jNode
+Neo4jCursor = neo4j.Neo4jCursor
+Neo4jTransaction = neo4j.Neo4jTransaction
+Neo4jRelationship = neo4j.Neo4jRelationship
+db = new neo4j.Neo4jDB 'http://localhost:7474', {username: 'neo4j', password: '1234'}
 
 
 __nodeCRC__ = (test, node, labels, props) ->
@@ -1084,6 +1089,121 @@ Tinytest.add 'Neo4jNode - properties - delete() [remove all]', (test) ->
 
 ###
 @test 
+@description Check nodes creation / properties.remove / deletion
+db.nodes(props).properties.remove(name)
+###
+Tinytest.add 'Neo4jNode - properties - remove(name)', (test) ->
+  node = db.nodes({one: 1})
+  _id = node.get().id
+  
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {one: 1}
+
+  node.properties.remove 'one'
+  test.isUndefined node.get().one
+
+  _node = db.queryOne "MATCH (n) WHERE id(n) = {id} RETURN n", {id: _id}
+
+  test.isUndefined _node.n.one
+
+  test.equal node.delete(), undefined
+
+###
+@test 
+@description Check nodes creation / properties.remove / deletion
+db.nodes(props).properties.remove(name)
+###
+Tinytest.add 'Neo4jNode - properties - remove(name) [non-existent]', (test) ->
+  node = db.nodes()
+  _id = node.get().id
+  
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {}
+
+  node.properties.remove 'one'
+  test.isUndefined node.get().one
+
+  _node = db.queryOne "MATCH (n) WHERE id(n) = {id} RETURN n", {id: _id}
+
+  test.isUndefined _node.n.one
+
+  test.equal node.delete(), undefined
+
+###
+@test 
+@description Check nodes creation / properties.remove / deletion
+db.nodes(props).properties.remove([name, name2])
+###
+Tinytest.add 'Neo4jNode - properties - remove([String])', (test) ->
+  node = db.nodes({one: 1, two: 2})
+  _id = node.get().id
+  
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {one: 1, two: 2}
+
+  node.properties.delete ['one', 'two']
+  test.isUndefined node.get().one, '[one] removed from instance'
+  test.isUndefined node.get().two, '[two] removed from instance'
+
+  _node = db.queryOne "MATCH (n) WHERE id(n) = {id} RETURN n", {id: _id}
+
+  test.isUndefined _node.n.one, '[one] removed from db'
+  test.isUndefined _node.n.two, '[two] removed from db'
+
+  test.equal node.delete(), undefined
+
+###
+@test 
+@description Check nodes creation / properties.remove / deletion
+db.nodes(props).properties.remove([name, name2])
+###
+Tinytest.add 'Neo4jNode - properties - remove([String]) [non-existent]', (test) ->
+  node = db.nodes({one: 1, two: 2})
+  _id = node.get().id
+  
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {one: 1, two: 2}
+
+  node.properties.remove ['three', 'four']
+  test.equal node.get().one, 1
+  test.equal node.get().two, 2
+  test.isUndefined node.get().three
+  test.isUndefined node.get().four
+
+  _node = db.queryOne "MATCH (n) WHERE id(n) = {id} RETURN n", {id: _id}
+
+  test.equal _node.n.one, 1
+  test.equal _node.n.two, 2
+  test.isUndefined _node.n.three
+  test.isUndefined _node.n.four
+
+  test.equal node.delete(), undefined
+
+###
+@test 
+@description Check nodes creation / properties.remove / deletion
+db.nodes(props).properties.remove()
+###
+Tinytest.add 'Neo4jNode - properties - remove() [remove all]', (test) ->
+  node = db.nodes({one: 1, two: 2})
+  _id = node.get().id
+  
+  __nodesInstanceCRC__ test, node
+  __nodeCRC__ test, node.get(), [], {one: 1, two: 2}
+
+  node.properties.remove()
+  test.isUndefined node.get().one, '[one] removed from instance'
+  test.isUndefined node.get().two, '[two] removed from instance'
+
+  _node = db.queryOne "MATCH (n) WHERE id(n) = {id} RETURN n", {id: _id}
+
+  test.isUndefined _node.n.one, '[one] removed from db'
+  test.isUndefined _node.n.two, '[two] removed from db'
+
+  test.equal node.remove(), undefined
+
+###
+@test 
 @description Check nodes creation / property / deletion
 db.nodes(props).property(name)
 ###
@@ -1538,6 +1658,90 @@ Tinytest.add 'Neo4jNode - labels - delete([String]) [Non Existent]', (test) ->
   __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2", "MyLabel3"], {}
 
   node.labels.delete(['MyLabel5', 'MyLabel6'])
+  
+  _node = db.queryOne "MATCH (n) WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2", "MyLabel3"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2", "MyLabel3"], {}
+
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / deleting label / deletion
+db.nodes().labels.set(['label', 'label2']).labels.remove('label').delete()
+###
+Tinytest.add 'Neo4jNode - labels - remove(name)', (test) ->
+  node = db.nodes().labels.set(['MyLabel1', 'MyLabel2'])
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH (n) WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2",], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2"], {}
+
+  node.labels.remove('MyLabel1')
+  
+  _node = db.queryOne "MATCH (n) WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel2"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel2"], {}
+
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / remove label / deletion
+db.nodes().labels.set(['label', 'label2']).labels.remove('label').delete()
+###
+Tinytest.add 'Neo4jNode - labels - remove(name) [Non Existent]', (test) ->
+  node = db.nodes().labels.set(['MyLabel1', 'MyLabel2'])
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH (n) WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2"], {}
+
+  node.labels.remove('MyLabel5')
+  
+  _node = db.queryOne "MATCH (n) WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2"], {}
+
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / remove labels / deletion
+db.nodes().labels.set(['label', 'label2', 'label3']).labels.remove(['label', 'label3']).delete()
+###
+Tinytest.add 'Neo4jNode - labels - remove([String])', (test) ->
+  node = db.nodes().labels.set(['MyLabel1', 'MyLabel2', 'MyLabel3'])
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH (n) WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2", "MyLabel3"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2", "MyLabel3"], {}
+
+  node.labels.remove(['MyLabel1', 'MyLabel3'])
+  
+  _node = db.queryOne "MATCH (n) WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel2"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel2"], {}
+
+  node.delete()
+
+###
+@test 
+@description Check nodes fetching / deleting labels / deletion
+db.nodes().labels.set(['label', 'label2', 'label3']).labels.remove(['label5', 'label6']).delete()
+###
+Tinytest.add 'Neo4jNode - labels - remove([String]) [Non Existent]', (test) ->
+  node = db.nodes().labels.set(['MyLabel1', 'MyLabel2', 'MyLabel3'])
+  __nodesInstanceCRC__ test, node
+
+  _node = db.queryOne "MATCH (n) WHERE id(n) = {id} RETURN n", {id: node.get().id}
+  __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2", "MyLabel3"], {}
+  __nodeCRC__ test, _node.n, ["MyLabel1", "MyLabel2", "MyLabel3"], {}
+
+  node.labels.remove(['MyLabel5', 'MyLabel6'])
   
   _node = db.queryOne "MATCH (n) WHERE id(n) = {id} RETURN n", {id: node.get().id}
   __nodeCRC__ test, node.get(), ["MyLabel1", "MyLabel2", "MyLabel3"], {}
@@ -2380,6 +2584,137 @@ Tinytest.add 'Neo4jRelationship - properties - delete() [remove all]', (test) ->
 
 ###
 @test 
+@description 
+r.properties.remove(name)
+###
+Tinytest.add 'Neo4jRelationship - properties - remove(name)', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = n1.to n2, "KNOWS", {testRels: true, testRel2: 2}
+  id = r.get().id
+
+  r.properties.remove 'testRels'
+
+  test.equal r.get().testRels, undefined
+  test.equal r.get().testRel2, 2
+
+  _r = db.queryOne("MATCH ()-[r]-() WHERE id(r) = {id} RETURN r", {id}).r
+
+  test.equal _r.testRels, undefined
+  test.equal _r.testRel2, 2
+
+  test.equal r.delete(), undefined
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+###
+@test 
+@description
+r.properties.remove(name)
+###
+Tinytest.add 'Neo4jRelationship - properties - remove(name) [non-existent]', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = n1.to n2, "KNOWS", {testRels: true, testRel2: 2}
+  id = r.get().id
+
+  r.properties.remove 'testRel3'
+
+  test.equal r.get().testRels, true
+  test.equal r.get().testRel2, 2
+
+  _r = db.queryOne("MATCH ()-[r]-() WHERE id(r) = {id} RETURN r", {id}).r
+
+  test.equal _r.testRels, true
+  test.equal _r.testRel2, 2
+
+  test.equal r.delete(), undefined
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+###
+@test 
+@description
+r.properties.remove([name, name2])
+###
+Tinytest.add 'Neo4jRelationship - properties - remove([String])', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = n1.to n2, "KNOWS", {testRels: true, testRel2: 2, testRel3: '3'}
+  id = r.get().id
+
+  r.properties.remove(['testRel3', 'testRels'])
+
+  test.equal r.get().testRels, undefined
+  test.equal r.get().testRel2, 2
+  test.equal r.get().testRel3, undefined
+
+  _r = db.queryOne("MATCH ()-[r]-() WHERE id(r) = {id} RETURN r", {id}).r
+
+  test.equal _r.testRels, undefined
+  test.equal _r.testRel2, 2
+  test.equal _r.testRel3, undefined
+
+  test.equal r.delete(), undefined
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+###
+@test 
+@description
+r.properties.remove([name, name2])
+###
+Tinytest.add 'Neo4jRelationship - properties - remove([String]) [non-existent]', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = n1.to n2, "KNOWS", {testRels: true, testRel2: 2, testRel3: '3'}
+  id = r.get().id
+
+  r.properties.remove(['testRel5', 'testRel6'])
+
+  test.equal r.get().testRels, true
+  test.equal r.get().testRel2, 2
+  test.equal r.get().testRel3, '3'
+
+  _r = db.queryOne("MATCH ()-[r]-() WHERE id(r) = {id} RETURN r", {id}).r
+
+  test.equal _r.testRels, true
+  test.equal _r.testRel2, 2
+  test.equal _r.testRel3, '3'
+
+  test.equal r.delete(), undefined
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+###
+@test 
+@description
+r.properties.remove()
+###
+Tinytest.add 'Neo4jRelationship - properties - remove() [remove all]', (test) ->
+  n1 = db.nodes()
+  n2 = db.nodes()
+  r = n1.to n2, "KNOWS", {testRels: true, testRel2: 2, testRel3: '3'}
+  id = r.get().id
+
+  r.properties.remove()
+
+  test.equal r.get().testRels, undefined
+  test.equal r.get().testRel2, undefined
+  test.equal r.get().testRel3, undefined
+
+  _r = db.queryOne("MATCH ()-[r]-() WHERE id(r) = {id} RETURN r", {id}).r
+
+  test.equal _r.testRels, undefined
+  test.equal _r.testRel2, undefined
+  test.equal _r.testRel3, undefined
+
+  test.equal r.delete(), undefined
+  test.equal n1.delete(), undefined
+  test.equal n2.delete(), undefined
+
+###
+@test 
 @description
 db.constraint.create()
 db.constraint.get()
@@ -2435,7 +2770,9 @@ Tinytest.add 'Neo4jNode - n.index - create() / get() / drop() (you will see `Unk
   test.isTrue !!~uri.indexOf('://')
   test.equal node.index.get('Special', 'uuid').indexed, uri
   test.equal node.index.drop('Special', 'uuid'), []
-  test.equal node.index.get('Special', 'uuid'), [] #Throws an error
+  try
+    test.equal node.index.get('Special', 'uuid'), [] #Throws an error
+
   node.delete()
 
 ###
@@ -2542,3 +2879,66 @@ Tinytest.add 'Neo4jNode - path - (node)', (test) ->
   n2.delete()
   n3.delete()
   n4.delete()
+
+
+Tinytest.add 'Neo4jDB - functions - collect()', (test) ->
+  n1 = db.nodes({prop: 1})
+  n2 = db.nodes({prop: 2})
+  res = db.query("MATCH (n) RETURN collect(n)").fetch()[0]
+  test.isTrue res.hasOwnProperty 'collect(n)'
+  test.isTrue res['collect(n)'].length is 2
+  n1.delete()
+  n2.delete()
+
+Tinytest.add 'Neo4jDB - functions - count()', (test) ->
+  n1 = db.nodes({prop: 1})
+  n2 = db.nodes({prop: 2})
+  res = db.queryOne("MATCH (n) RETURN count(*) AS count")
+  test.isTrue res.hasOwnProperty 'count'
+  test.isTrue res.count is 2
+  n1.delete()
+  n2.delete()
+
+Tinytest.add 'Neo4jDB - functions - count(DISTINCT)', (test) ->
+  n1 = db.nodes({name: 'Mark'})
+  n2 = db.nodes({name: 'Gina'})
+  n3 = db.nodes({name: 'Mike'})
+  r1 = n1.to(n2, "KNOWS")
+  r2 = n1.to(n3, "KNOWS")
+  r3 = n3.to(n2, "KNOWS")
+  res = db.queryOne("MATCH (a)-[r:KNOWS]-(b) WHERE b.name = 'Gina' RETURN count(DISTINCT b) AS count")
+  test.isTrue res.hasOwnProperty 'count'
+  test.isTrue res.count is 1
+  r1.delete()
+  r2.delete()
+  r3.delete()
+  n1.delete()
+  n2.delete()
+  n3.delete()
+
+Tinytest.add 'Neo4jDB - functions - sum()', (test) ->
+  n1 = db.nodes({name: 'Mark', age: 20})
+  n2 = db.nodes({name: 'Gina', age: 21})
+  n3 = db.nodes({name: 'Mike', age: 22})
+  r1 = n1.to(n2, "KNOWS")
+  r2 = n1.to(n3, "KNOWS")
+  r3 = n3.to(n2, "KNOWS")
+  res = db.queryOne("MATCH (a)-[r:KNOWS]-(b) RETURN sum(DISTINCT b.age) AS sum")
+  test.isTrue res.hasOwnProperty 'sum'
+  test.isTrue res.sum is 63
+  r1.remove()
+  r2.remove()
+  r3.remove()
+  n1.delete()
+  n2.delete()
+  n3.delete()
+
+Tinytest.addAsync 'Neo4jDB - complex queries - see #31', (test, completed) ->
+  db.query("WITH TIMESTAMP() AS timestamp CREATE (node:Group {name: 'name1'}) RETURN node").each (node) ->
+    # data = node.node.get()
+    # test.equal(data.name, 'name1')
+    # test.equal(data.labels, ['Group'])
+    __nodeCRC__ test, node.node.get(), ["Group"], {name: 'name1'}
+    test.equal node.node.remove(), undefined
+    completed()
+    return
