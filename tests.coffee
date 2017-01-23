@@ -2939,3 +2939,22 @@ Tinytest.addAsync 'Neo4jDB - complex queries - see #31', (test, completed) ->
     test.equal node.node.remove(), undefined
     completed()
     return
+
+Tinytest.add 'Neo4jDB - complex queries - see #36 (A property with a value of 0)', (test) ->
+  n1 = db.nodes({name: 'Mark'})
+  n2 = db.nodes({name: 'Gina'})
+  n3 = db.nodes({name: 'Mike'})
+  r1 = n1.to(n2, "KNOWS")
+  r1.properties.set('id', 0)
+  r2 = n1.to(n3, "KNOWS")
+  r3 = n3.to(n2, "KNOWS")
+  res = db.query("MATCH (n)-[r]->(m) WHERE ID(r) = {id} RETURN 'id=0', ID(r) AS id", {id: r1.get().id}).fetch()
+  test.equal res, []
+  __relationCRC__ test, r1, n1.get().id, n2.get().id, "KNOWS", {}
+  test.equal db.relationship.get(0).get(), undefined
+  r1.delete()
+  r2.delete()
+  r3.delete()
+  n1.delete()
+  n2.delete()
+  n3.delete()
