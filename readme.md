@@ -1,7 +1,10 @@
 [![Join the chat at https://gitter.im/VeliovGroup/ostrio-neo4jdriver](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/VeliovGroup/ostrio-neo4jdriver?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-![Neo4j Driver](https://raw.githubusercontent.com/VeliovGroup/ostrio-Neo4jdriver/master/logo.min.png)
+Most advanced, [well documented](https://github.com/VeliovGroup/neo4j-fiber/wiki) and efficient REST client for Neo4j database, with 100% tests coverage. Fibers and MEteor.js allows to give a new level experience to developers, no more callback-hell and blocking operations. Speed and low resources consumption is top priority of neo4j-fiber package.
 
+![Neo4j Driver](https://raw.githubusercontent.com/VeliovGroup/ostrio-Neo4jdriver/master/logo.min.png)
+ - __100% tests coverage__
+ - Meteor-less NPM version - https://www.npmjs.com/package/neo4j-fiber
  - __This is server-side only package, to retrieve data from the client use [call(s)](http://docs.meteor.com/#/full/meteor_call) and [methods](http://docs.meteor.com/#/full/meteor_methods)__
  - This package uses [batch operations](http://neo4j.com/docs/rest-docs/3.1/#rest-api-batch-ops) to perform queries. Batch operations lets you execute multiple API calls through a single HTTP call. This improves performance for large insert and update operations significantly
  - This package was tested and works like a charm with [GrapheneDB](http://www.graphenedb.com)
