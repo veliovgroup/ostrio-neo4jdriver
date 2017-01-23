@@ -2935,9 +2935,6 @@ Tinytest.add 'Neo4jDB - functions - sum()', (test) ->
 
 Tinytest.addAsync 'Neo4jDB - complex queries - see #31', (test, completed) ->
   db.query("WITH TIMESTAMP() AS timestamp CREATE (node:Group {name: 'name1'}) RETURN node").each (node) ->
-    # data = node.node.get()
-    # test.equal(data.name, 'name1')
-    # test.equal(data.labels, ['Group'])
     __nodeCRC__ test, node.node.get(), ["Group"], {name: 'name1'}
     test.equal node.node.remove(), undefined
     completed()
