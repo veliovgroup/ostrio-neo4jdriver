@@ -1,6 +1,5 @@
-.build*
-.npm
-
-demo/demo.js
-
-.DS_Store
+/node_modules/
+/demo
+node_modules
+build
+*.log
