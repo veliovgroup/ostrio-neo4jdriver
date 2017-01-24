@@ -115,9 +115,11 @@ console.info(cheapestStr); // <-- Cheapest from Zürich to Tokyo, via: Zürich, 
 
 // Create data via cypher query (as alternative to examples above)
 const cursor = db.query('CREATE (n:City {props}) RETURN n', {
-  title: 'Ottawa',
-  lat: 45.24,
-  long: 75.43
+  props {
+    title: 'Ottawa',
+    lat: 45.24,
+    long: 75.43
+  }
 });
 
 console.log(cursor.fetch());
