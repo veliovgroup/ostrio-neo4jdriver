@@ -1,0 +1,39 @@
+{
+  "dependencies": {
+    "debug": {
+      "version": "2.6.0",
+      "resolved": "https://registry.npmjs.org/debug/-/debug-2.6.0.tgz",
+      "from": "debug@>=2.1.2 <3.0.0"
+    },
+    "fibers": {
+      "version": "1.0.15",
+      "resolved": "https://registry.npmjs.org/fibers/-/fibers-1.0.15.tgz",
+      "from": "fibers@>=1.0.15 <2.0.0"
+    },
+    "iconv-lite": {
+      "version": "0.4.15",
+      "resolved": "https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.4.15.tgz",
+      "from": "iconv-lite@>=0.4.4 <0.5.0"
+    },
+    "ms": {
+      "version": "0.7.2",
+      "resolved": "https://registry.npmjs.org/ms/-/ms-0.7.2.tgz",
+      "from": "ms@0.7.2"
+    },
+    "needle": {
+      "version": "1.4.3",
+      "resolved": "https://registry.npmjs.org/needle/-/needle-1.4.3.tgz",
+      "from": "needle@>=1.4.3 <2.0.0"
+    },
+    "neo4j-fiber": {
+      "version": "1.0.1",
+      "resolved": "https://registry.npmjs.org/neo4j-fiber/-/neo4j-fiber-1.0.1.tgz",
+      "from": "neo4j-fiber@1.0.1"
+    },
+    "underscore": {
+      "version": "1.8.3",
+      "resolved": "https://registry.npmjs.org/underscore/-/underscore-1.8.3.tgz",
+      "from": "underscore@>=1.8.3 <2.0.0"
+    }
+  }
+}
