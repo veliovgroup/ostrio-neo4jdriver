@@ -21,14 +21,14 @@
       "from": "ms@0.7.2"
     },
     "needle": {
-      "version": "1.4.3",
-      "resolved": "https://registry.npmjs.org/needle/-/needle-1.4.3.tgz",
-      "from": "needle@>=1.4.3 <2.0.0"
+      "version": "1.4.5",
+      "resolved": "https://registry.npmjs.org/needle/-/needle-1.4.5.tgz",
+      "from": "needle@>=1.4.5 <2.0.0"
     },
     "neo4j-fiber": {
-      "version": "1.0.1",
-      "resolved": "https://registry.npmjs.org/neo4j-fiber/-/neo4j-fiber-1.0.1.tgz",
-      "from": "neo4j-fiber@1.0.1"
+      "version": "1.0.2",
+      "resolved": "https://registry.npmjs.org/neo4j-fiber/-/neo4j-fiber-1.0.2.tgz",
+      "from": "neo4j-fiber@1.0.2"
     },
     "underscore": {
       "version": "1.8.3",
