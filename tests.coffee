@@ -7,7 +7,8 @@ Neo4jNode = neo4j.Neo4jNode
 Neo4jCursor = neo4j.Neo4jCursor
 Neo4jTransaction = neo4j.Neo4jTransaction
 Neo4jRelationship = neo4j.Neo4jRelationship
-db = new neo4j.Neo4jDB 'http://localhost:7474', {username: 'neo4j', password: '1234'}
+# Connect using NEO4J_URL or GRAPHENEDB_URL env.var
+db = new neo4j.Neo4jDB()
 
 
 __nodeCRC__ = (test, node, labels, props) ->
@@ -2887,6 +2888,24 @@ Tinytest.add 'Neo4jDB - functions - collect()', (test) ->
   res = db.query("MATCH (n) RETURN collect(n)").fetch()[0]
   test.isTrue res.hasOwnProperty 'collect(n)'
   test.isTrue res['collect(n)'].length is 2
+  n1.delete()
+  n2.delete()
+
+Tinytest.add 'Neo4jDB - functions - collect() alias see #6', (test) ->
+  n1 = db.nodes({prop: 1})
+  n2 = db.nodes({prop: 2})
+  res = db.query("MATCH (n) RETURN collect(n) as node").fetch()[0]
+  test.isTrue res.hasOwnProperty 'node'
+  test.isTrue res['node'].length is 2
+  n1.delete()
+  n2.delete()
+
+Tinytest.add 'Neo4jDB - functions - collect() must return Neo4jNode instances (nested arrays) see #6', (test) ->
+  n1 = db.nodes({prop: 1})
+  n2 = db.nodes({prop: 2})
+  res = db.query("MATCH (n) RETURN collect({p: n.prop}) as node").fetch()[0].node
+  for i in res
+    test.isTrue i.get().hasOwnProperty 'p'
   n1.delete()
   n2.delete()
 
