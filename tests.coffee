@@ -10,7 +10,6 @@ Neo4jRelationship = neo4j.Neo4jRelationship
 # Connect using NEO4J_URL or GRAPHENEDB_URL env.var
 db = new neo4j.Neo4jDB()
 
-
 __nodeCRC__ = (test, node, labels, props) ->
   test.isTrue _.has node, 'id'
   test.isTrue _.isNumber node.id
@@ -2905,7 +2904,7 @@ Tinytest.add 'Neo4jDB - functions - collect() must return Neo4jNode instances (n
   n2 = db.nodes({prop: 2})
   res = db.query("MATCH (n) RETURN collect({p: n.prop}) as node").fetch()[0].node
   for i in res
-    test.isTrue i.get().hasOwnProperty 'p'
+    test.isTrue i.hasOwnProperty 'p'
   n1.delete()
   n2.delete()
 
