@@ -26,9 +26,9 @@
       "from": "needle@>=1.4.5 <2.0.0"
     },
     "neo4j-fiber": {
-      "version": "1.0.2",
-      "resolved": "https://registry.npmjs.org/neo4j-fiber/-/neo4j-fiber-1.0.2.tgz",
-      "from": "neo4j-fiber@1.0.2"
+      "version": "1.0.3",
+      "resolved": "https://registry.npmjs.org/neo4j-fiber/-/neo4j-fiber-1.0.3.tgz",
+      "from": "neo4j-fiber@1.0.3"
     },
     "underscore": {
       "version": "1.8.3",
